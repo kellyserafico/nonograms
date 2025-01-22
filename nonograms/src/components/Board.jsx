@@ -7,6 +7,8 @@ function Board({ size }) {
 	const [rowClues, setRowClues] = useState([]);
 	const [colClues, setColClues] = useState([]);
 	const [win, setWin] = useState(false);
+	const [isDragging, setIsDragging] = useState(false);
+	const [dragColor, setDragColor] = useState(null); // Current drag color
 
 	useEffect(() => {
 		// Generate random solution
@@ -55,7 +57,7 @@ function Board({ size }) {
 		<tr>
 			<td></td> {/* Empty cell for alignment */}
 			{colClues.map((clue, index) => (
-				<td key={index} className="text-center">
+				<td key={index} className="text-center text-3xl">
 					{clue.map((num, clueIndex) => (
 						<div key={clueIndex}>{num}</div>
 					))}
@@ -64,30 +66,43 @@ function Board({ size }) {
 		</tr>
 	);
 
-	const handleCellClick = (i, j, event) => {
-		event.preventDefault();
-		const newColors = cellColors.map((row, rowIndex) =>
-			row.map((color, colIndex) => {
-				if (rowIndex === i && colIndex === j) {
-					if (event.type === "click") {
-						if (color === "white") {
-							return "black";
-						} else if (color === "red") {
-							return "white";
-						}
-					} else if (event.type === "contextmenu") {
-						if (color === "black" || color === "red") {
-							return "white";
-						} else {
-							return "red";
-						}
+	const handleMouseDown = (i, j, event) => {
+		event.preventDefault(); // Prevent default context menu on right-click
+		setIsDragging(true);
+
+		if (event.button === 0) {
+			// Left-click: Toggle between "white" and "black"
+			setDragColor(cellColors[i][j] === "white" ? "black" : "white");
+			updateCellColor(i, j, cellColors[i][j] === "white" ? "black" : "white");
+		} else if (event.button === 2) {
+			// Right-click: Toggle between "white" and "red"
+			setDragColor(cellColors[i][j] === "red" ? "white" : "red");
+			updateCellColor(i, j, cellColors[i][j] === "red" ? "white" : "red");
+		}
+	};
+
+	const handleMouseMove = (i, j) => {
+		if (isDragging && dragColor !== null) {
+			updateCellColor(i, j, dragColor); // Apply drag color
+		}
+	};
+
+	const handleMouseUp = () => {
+		setIsDragging(false); // Stop dragging
+		checkWin(cellColors); // Check win condition
+	};
+
+	const updateCellColor = (i, j, color) => {
+		setCellColors((prevColors) =>
+			prevColors.map((row, rowIndex) =>
+				row.map((cellColor, colIndex) => {
+					if (rowIndex === i && colIndex === j) {
+						return color;
 					}
-				}
-				return color;
-			})
+					return cellColor;
+				})
+			)
 		);
-		setCellColors(newColors);
-		checkWin(newColors);
 	};
 
 	const checkWin = (currentColors) => {
@@ -103,7 +118,7 @@ function Board({ size }) {
 		let table = [];
 		for (let i = 0; i < size; i++) {
 			let row = [
-				<td key={`clue-${i}`} className="text-right pr-2">
+				<td key={`clue-${i}`} className="text-right pr-2 text-3xl">
 					{rowClues[i]?.join(" ")}
 				</td>, // Row clue
 			];
@@ -111,10 +126,12 @@ function Board({ size }) {
 				row.push(
 					<td
 						key={`${i}-${j}`}
-						className="border border-black w-8 h-8"
+						className="border border-black w-20 h-20"
 						style={{ backgroundColor: cellColors[i]?.[j] || "white" }}
-						onClick={(e) => handleCellClick(i, j, e)}
-						onContextMenu={(e) => handleCellClick(i, j, e)}
+						onMouseDown={(e) => handleMouseDown(i, j, e)}
+						onMouseMove={() => handleMouseMove(i, j)}
+						onMouseUp={handleMouseUp}
+						onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right-click
 					></td>
 				);
 			}
@@ -126,7 +143,10 @@ function Board({ size }) {
 	return (
 		<div>
 			<h1 className="text-center">{win ? "You Win!" : "Nonograms Game"}</h1>
-			<table className="border-collapse">
+			<table
+				className="m-auto border-collapse"
+				onMouseLeave={handleMouseUp} // Ensure drag ends when mouse leaves table
+			>
 				<thead>{renderColumnClues()}</thead>
 				<tbody>{createTable()}</tbody>
 			</table>
