@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
+import { useEffect } from "react";
 
 function Board({ size }) {
 	const [cellColors, setCellColors] = useState(Array(size).fill(Array(size).fill("white")));
