@@ -13,6 +13,8 @@ function App() {
 	return (
 		<div>
 			<h1>Nonograms</h1>
+			<button>Single Player</button>
+			<button>Multiplayer</button>
 			<p className="text-3xl">Enter nonogram size:</p>
 			<div className="flex flex-row">
 				<input
