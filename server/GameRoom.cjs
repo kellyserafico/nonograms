@@ -1,18 +1,18 @@
 const colyseus = require("colyseus");
-const { Room } = colyseus;
+const { GameState, Player } = require("./GameState.cjs");
 
-class GameRoom extends Room {
+class GameRoom extends colyseus.Room {
 	maxClients = 2;
 
 	onCreate() {
-		this.setState({
-			players: {},
-			gameStarted: false,
-		});
+		this.setState(new GameState()); // ✅ Use Colyseus Schema
+		console.log("✅ Game room created!");
 	}
 
 	onJoin(client) {
-		this.state.players[client.sessionId] = { board: [] };
+		const newPlayer = new Player();
+		this.state.players[client.sessionId] = newPlayer;
+		console.log(`Player joined: ${client.sessionId}`);
 
 		if (Object.keys(this.state.players).length === 2) {
 			this.state.gameStarted = true;
@@ -22,13 +22,18 @@ class GameRoom extends Room {
 
 	onMessage(client, message) {
 		if (message.type === "update_board") {
-			this.state.players[client.sessionId].board = message.board;
+			if (!Array.isArray(message.board) || message.board.length !== 100) {
+				console.error("❌ Invalid board format:", message.board);
+				return;
+			}
+			this.state.players[client.sessionId].board = new ArraySchema(...message.board);
 			this.broadcast("update_board", this.state.players);
 		}
 	}
 
 	onLeave(client) {
 		delete this.state.players[client.sessionId];
+		console.log(`Player left: ${client.sessionId}`);
 		this.state.gameStarted = false;
 	}
 }

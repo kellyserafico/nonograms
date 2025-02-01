@@ -5,20 +5,30 @@ import { colyseusClient } from "../ColyseusClient";
 function Lobby() {
 	const navigate = useNavigate();
 	const [roomCode, setRoomCode] = useState("");
+	const [createdRoomCode, setCreatedRoomCode] = useState(null);
 
+	// ✅ Create a room and navigate to multiplayer
 	const createLobby = async () => {
 		try {
-			const room = await colyseusClient.create("game_room");
-			navigate(`/lobby/${room.id}`); // ✅ Redirect to multiplayer game
+			const room = await colyseusClient.create("game_room"); // ✅ Create the room
+			setCreatedRoomCode(room.id);
+			navigate(`/multiplayer/${room.id}`); // ✅ Redirect to multiplayer game
 		} catch (error) {
-			console.error("Failed to create room:", error);
+			console.error("❌ Failed to create room:", error);
 			alert("Could not create room.");
 		}
 	};
 
-	const joinLobby = () => {
+	// ✅ Join a room
+	const joinLobby = async () => {
 		if (roomCode.trim() !== "") {
-			navigate(`/lobby/${roomCode}`); // ✅ Redirect to specific room
+			try {
+				const room = await colyseusClient.joinById(roomCode);
+				navigate(`/multiplayer/${roomCode}`); // ✅ Redirect to multiplayer game
+			} catch (error) {
+				console.error("❌ Failed to join room:", error);
+				alert("Room not found! Make sure the host has created it.");
+			}
 		} else {
 			alert("Please enter a valid room code.");
 		}
@@ -28,12 +38,18 @@ function Lobby() {
 		<div className="flex flex-col items-center justify-center h-screen">
 			<h1 className="text-4xl font-bold mb-6">Multiplayer Lobby</h1>
 
-			{/* Create a lobby */}
-			<button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded mb-4" onClick={createLobby}>
-				Create Lobby
-			</button>
+			{/* ✅ Show room code after creation */}
+			{createdRoomCode ? (
+				<div className="text-xl font-bold text-blue-600 mb-4">
+					Room Code: <span className="bg-gray-200 p-2 rounded">{createdRoomCode}</span>
+				</div>
+			) : (
+				<button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded mb-4" onClick={createLobby}>
+					Create Lobby
+				</button>
+			)}
 
-			{/* Join a lobby */}
+			{/* ✅ Input field to join a room */}
 			<div className="flex space-x-2">
 				<input
 					type="text"
