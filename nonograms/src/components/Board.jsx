@@ -9,6 +9,8 @@ function Board({ size }) {
 	const [win, setWin] = useState(false);
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragColor, setDragColor] = useState(null); // Current drag color
+	const [timer, setTimer] = useState(0); // Timer state
+	const [isRunning, setIsRunning] = useState(true); // Timer running state
 
 	useEffect(() => {
 		// Generate random solution
@@ -52,6 +54,16 @@ function Board({ size }) {
 		});
 		setColClues(newColClues);
 	}, [size]);
+
+	useEffect(() => {
+		let interval;
+		if (isRunning) {
+			interval = setInterval(() => {
+				setTimer((prevTimer) => prevTimer + 1);
+			}, 1000);
+		}
+		return () => clearInterval(interval);
+	}, [isRunning]);
 
 	const renderColumnClues = () => (
 		<tr>
@@ -110,6 +122,9 @@ function Board({ size }) {
 			row.every((cell, j) => (cell ? currentColors[i][j] === "black" : currentColors[i][j] !== "black"))
 		);
 		setWin(isWin);
+		if (isWin) {
+			setIsRunning(false); // Stop the timer when the user wins
+		}
 	};
 
 	const createTable = () => {
@@ -143,6 +158,9 @@ function Board({ size }) {
 	return (
 		<div>
 			<h1 className="text-center">{win ? "You Win!" : "Nonograms Game"}</h1>
+			<div className="text-center text-2xl">
+				Time: {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, "0")} minutes
+			</div>
 			<table
 				className="m-auto border-collapse"
 				onMouseLeave={handleMouseUp} // Ensure drag ends when mouse leaves table
