@@ -1,9 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import SinglePlayer from "./pages/SinglePlayer";
-//import Multiplayer from "./pages/Multiplayer";
-import Lobby from "./pages/Lobby"; // ✅ Add this import
-import MultiplayerGame from "./components/MultiplayerGame";
+import Multiplayer from "./pages/Multiplayer";
+import MultiplayerLobby from "./pages/MultiplayerLobby";
 
 function App() {
 	return (
@@ -11,8 +10,8 @@ function App() {
 			<Routes>
 				<Route path="/" element={<Home />} />
 				<Route path="/play" element={<SinglePlayer />} />
-				<Route path="/lobby" element={<Lobby />} /> {/* ✅ Add this line */}
-				<Route path="/lobby/:roomCode" element={<MultiplayerGame />} />
+				<Route path="/multiplayer" element={<Multiplayer />} />
+				<Route path="/multiplayer/:roomCode" element={<MultiplayerLobby />} /> {/* ✅ Ensure this route exists */}
 			</Routes>
 		</Router>
 	);

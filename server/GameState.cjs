@@ -1,13 +1,13 @@
 const schema = require("@colyseus/schema");
-const { Schema, MapSchema, ArraySchema, type } = schema;
+const { Schema, type, MapSchema } = schema;
 
 class Player extends Schema {
-	constructor() {
+	constructor(name) {
 		super();
-		this.board = new ArraySchema(...Array(100).fill(0)); // Flattened 10x10 board
+		this.name = name;
 	}
 }
-type(["uint8"])(Player.prototype, "board"); // ✅ CommonJS-friendly version
+type("string")(Player.prototype, "name");
 
 class GameState extends Schema {
 	constructor() {
@@ -16,7 +16,7 @@ class GameState extends Schema {
 		this.gameStarted = false;
 	}
 }
-type({ map: Player })(GameState.prototype, "players"); // ✅ Apply type dynamically
+type({ map: Player })(GameState.prototype, "players");
 type("boolean")(GameState.prototype, "gameStarted");
 
 module.exports = { GameState, Player };
