@@ -11,9 +11,9 @@ const gameServer = new colyseus.Server({ server });
 
 gameServer.define("game_room", GameRoom); // ✅ Defines "game_room"
 
-app.use(express.static(path.join(__dirname, "../nonograms/dist")));
+app.use(express.static(path.join(__dirname, "../client/dist")));
 app.get("*", (req, res) => {
-	res.sendFile(path.resolve(__dirname, "../nonograms/dist/index.html"));
+	res.sendFile(path.resolve(__dirname, "../client/dist/index.html"));
 });
 
 server.listen(port, () => {
