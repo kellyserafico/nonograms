@@ -1,120 +1,103 @@
 import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 
-function Board({ size }) {
+function calcClues(solution, size) {
+	const rowClues = solution.map((row) => {
+		let clues = [], count = 0;
+		row.forEach((cell) => { if (cell) count++; else if (count > 0) { clues.push(count); count = 0; } });
+		if (count > 0) clues.push(count);
+		return clues.length > 0 ? clues : [0];
+	});
+	const colClues = Array.from({ length: size }, (_, ci) => {
+		let clues = [], count = 0;
+		for (let ri = 0; ri < size; ri++) {
+			if (solution[ri][ci]) count++;
+			else if (count > 0) { clues.push(count); count = 0; }
+		}
+		if (count > 0) clues.push(count);
+		return clues.length > 0 ? clues : [0];
+	});
+	return { rowClues, colClues };
+}
+
+// initialSolution: 2D boolean array from server (same puzzle for all players in a room)
+// externalCellColors: 2D color array managed by parent (for read-only opponent boards)
+// readOnly: disables mouse interaction
+// onCellUpdate(i, j, color): called when the local player changes a cell
+function Board({ size, onWin, blurred = false, readOnly = false, initialSolution = null, externalCellColors = null, onCellUpdate }) {
 	const [solution, setSolution] = useState([]);
 	const [cellColors, setCellColors] = useState([]);
 	const [rowClues, setRowClues] = useState([]);
 	const [colClues, setColClues] = useState([]);
 	const [win, setWin] = useState(false);
 	const [isDragging, setIsDragging] = useState(false);
-	const [dragColor, setDragColor] = useState(null); // Current drag color
-	const [timer, setTimer] = useState(0); // Timer state
-	const [isRunning, setIsRunning] = useState(true); // Timer running state
+	const [dragColor, setDragColor] = useState(null);
+	const [timer, setTimer] = useState(0);
+	const [isRunning, setIsRunning] = useState(!readOnly);
 
 	useEffect(() => {
-		// Generate random solution
-		const newSolution = Array.from({ length: size }, () => Array.from({ length: size }, () => Math.random() < 0.5));
-		setSolution(newSolution);
-
-		// Generate initial cell colors with unique rows
+		const sol = initialSolution || Array.from({ length: size }, () =>
+			Array.from({ length: size }, () => Math.random() < 0.5)
+		);
+		setSolution(sol);
 		setCellColors(Array.from({ length: size }, () => Array(size).fill("white")));
-
-		// Calculate row clues
-		const newRowClues = newSolution.map((row) => {
-			let clues = [];
-			let count = 0;
-			row.forEach((cell) => {
-				if (cell) {
-					count++;
-				} else if (count > 0) {
-					clues.push(count);
-					count = 0;
-				}
-			});
-			if (count > 0) clues.push(count);
-			return clues.length > 0 ? clues : [0];
-		});
-		setRowClues(newRowClues);
-
-		// Calculate column clues
-		const newColClues = Array.from({ length: size }, (_, colIndex) => {
-			let clues = [];
-			let count = 0;
-			for (let rowIndex = 0; rowIndex < size; rowIndex++) {
-				if (newSolution[rowIndex][colIndex]) {
-					count++;
-				} else if (count > 0) {
-					clues.push(count);
-					count = 0;
-				}
-			}
-			if (count > 0) clues.push(count);
-			return clues.length > 0 ? clues : [0];
-		});
-		setColClues(newColClues);
-	}, [size]);
+		const { rowClues, colClues } = calcClues(sol, size);
+		setRowClues(rowClues);
+		setColClues(colClues);
+	}, [size]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
+		if (readOnly) return;
 		let interval;
-		if (isRunning) {
-			interval = setInterval(() => {
-				setTimer((prevTimer) => prevTimer + 1);
-			}, 1000);
-		}
+		if (isRunning) interval = setInterval(() => setTimer((t) => t + 1), 1000);
 		return () => clearInterval(interval);
-	}, [isRunning]);
+	}, [isRunning, readOnly]);
+
+	const colorAt = (i, j) =>
+		(externalCellColors ? externalCellColors[i]?.[j] : cellColors[i]?.[j]) || "white";
 
 	const renderColumnClues = () => (
 		<tr>
-			<td></td> {/* Empty cell for alignment */}
+			<td></td>
 			{colClues.map((clue, index) => (
-				<td key={index} className="text-center text-3xl">
-					{clue.map((num, clueIndex) => (
-						<div key={clueIndex}>{num}</div>
-					))}
+				<td key={index} className="text-center text-xl font-semibold pb-1" style={{ color: "#b07090" }}>
+					{clue.map((num, ci) => <div key={ci}>{num}</div>)}
 				</td>
 			))}
 		</tr>
 	);
 
-	const handleMouseDown = (i, j, event) => {
-		event.preventDefault(); // Prevent default context menu on right-click
-		setIsDragging(true);
+	const updateCellColor = (i, j, color) => {
+		setCellColors((prev) =>
+			prev.map((row, ri) => row.map((c, ci) => (ri === i && ci === j ? color : c)))
+		);
+		onCellUpdate?.(i, j, color);
+	};
 
+	const handleMouseDown = (i, j, event) => {
+		if (readOnly) return;
+		event.preventDefault();
+		setIsDragging(true);
 		if (event.button === 0) {
-			// Left-click: Toggle between "white" and "black"
-			setDragColor(cellColors[i][j] === "white" ? "black" : "white");
-			updateCellColor(i, j, cellColors[i][j] === "white" ? "black" : "white");
+			const next = cellColors[i][j] === "white" ? "black" : "white";
+			setDragColor(next);
+			updateCellColor(i, j, next);
 		} else if (event.button === 2) {
-			// Right-click: Toggle between "white" and "red"
-			setDragColor(cellColors[i][j] === "red" ? "white" : "red");
-			updateCellColor(i, j, cellColors[i][j] === "red" ? "white" : "red");
+			const next = cellColors[i][j] === "white" ? "red" : "white";
+			setDragColor(next);
+			updateCellColor(i, j, next);
 		}
 	};
 
 	const handleMouseMove = (i, j) => {
-		if (isDragging && dragColor !== null) {
-			updateCellColor(i, j, dragColor); // Apply drag color
-		}
+		if (readOnly || !isDragging || dragColor === null) return;
+		updateCellColor(i, j, dragColor);
 	};
 
 	const handleMouseUp = () => {
-		setIsDragging(false); // Stop dragging
-		checkWin(cellColors); // Check win condition
-	};
-
-	const updateCellColor = (i, j, color) => {
-		setCellColors((prevColors) =>
-			prevColors.map((row, rowIndex) =>
-				row.map((cellColor, colIndex) => {
-					if (rowIndex === i && colIndex === j) {
-						return color;
-					}
-					return cellColor;
-				})
-			)
-		);
+		if (readOnly) return;
+		setIsDragging(false);
+		checkWin(cellColors);
 	};
 
 	const checkWin = (currentColors) => {
@@ -123,57 +106,94 @@ function Board({ size }) {
 		);
 		setWin(isWin);
 		if (isWin) {
-			setIsRunning(false); // Stop the timer when the user wins
+			setIsRunning(false);
+			onWin?.(timer);
 		}
+	};
+
+	const clearBoard = () => {
+		setCellColors(Array.from({ length: size }, () => Array(size).fill("white")));
+		setWin(false);
+		setTimer(0);
+		setIsRunning(true);
 	};
 
 	const createTable = () => {
-		if (cellColors.length === 0) return null; // Ensure cellColors is initialized
-
-		let table = [];
-		for (let i = 0; i < size; i++) {
-			let row = [
-				<td key={`clue-${i}`} className="text-right pr-2 text-3xl">
+		if (solution.length === 0) return null;
+		return Array.from({ length: size }, (_, i) => (
+			<tr key={i}>
+				<td className="text-right pr-3 text-xl font-semibold" style={{ color: "#b07090" }}>
 					{rowClues[i]?.join(" ")}
-				</td>, // Row clue
-			];
-			for (let j = 0; j < size; j++) {
-				row.push(
+				</td>
+				{Array.from({ length: size }, (_, j) => (
 					<td
 						key={`${i}-${j}`}
-						className="border border-black w-20 h-20"
-						style={{ backgroundColor: cellColors[i]?.[j] || "white" }}
+						className="w-12 h-12"
+						style={{
+							backgroundColor:
+								colorAt(i, j) === "black" ? "#9b5b7a"
+								: colorAt(i, j) === "red" ? "#f7a8c0"
+								: "#fff0f6",
+							border: "1.5px solid #e8c4d8",
+							cursor: readOnly ? "default" : "crosshair",
+						}}
 						onMouseDown={(e) => handleMouseDown(i, j, e)}
 						onMouseMove={() => handleMouseMove(i, j)}
 						onMouseUp={handleMouseUp}
-						onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right-click
-					></td>
-				);
-			}
-			table.push(<tr key={i}>{row}</tr>);
-		}
-		return table;
+						onContextMenu={(e) => e.preventDefault()}
+					/>
+				))}
+			</tr>
+		));
 	};
 
 	return (
-		<div>
-			<h1 className="text-center">{win ? "You Win!" : "Nonograms Game"}</h1>
-			<div className="text-center text-2xl">
-				Time: {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, "0")} minutes
+		<div className="flex flex-col items-center">
+			{!readOnly && (
+				<>
+					<h1 className="text-3xl font-extrabold mb-1" style={{ color: win ? "#84c084" : "#c084a0" }}>
+						{win ? "🎉 You Win!" : "✏️ Solve the puzzle"}
+					</h1>
+					<div className="text-lg font-medium mb-2" style={{ color: "#c4a8bc" }}>
+						⏱ {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, "0")}
+					</div>
+					<button
+						onClick={clearBoard}
+						className="mb-4 text-sm font-semibold rounded-full px-5 py-1 shadow-sm transition-transform hover:scale-105"
+						style={{ background: "#e8d5f0", color: "#8b5b9b" }}
+					>
+						Clear Board
+					</button>
+				</>
+			)}
+			<div className="relative rounded-2xl p-4 shadow-md" style={{ background: "rgba(255,255,255,0.55)" }}>
+				<table
+					className="border-collapse"
+					style={{ filter: blurred ? "blur(6px)" : "none", userSelect: blurred ? "none" : "auto" }}
+					onMouseLeave={handleMouseUp}
+				>
+					<thead>{renderColumnClues()}</thead>
+					<tbody>{createTable()}</tbody>
+				</table>
+				{blurred && (
+					<div className="absolute inset-0 flex items-center justify-center rounded-2xl"
+						style={{ background: "rgba(255,240,246,0.3)" }}>
+						<span className="text-2xl">🔒</span>
+					</div>
+				)}
 			</div>
-			<table
-				className="m-auto border-collapse"
-				onMouseLeave={handleMouseUp} // Ensure drag ends when mouse leaves table
-			>
-				<thead>{renderColumnClues()}</thead>
-				<tbody>{createTable()}</tbody>
-			</table>
 		</div>
 	);
 }
 
 Board.propTypes = {
 	size: PropTypes.number.isRequired,
+	onWin: PropTypes.func,
+	blurred: PropTypes.bool,
+	readOnly: PropTypes.bool,
+	initialSolution: PropTypes.array,
+	externalCellColors: PropTypes.array,
+	onCellUpdate: PropTypes.func,
 };
 
 export default Board;
