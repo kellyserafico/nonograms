@@ -169,7 +169,7 @@ function Board({ size, onWin, blurred = false, readOnly = false, initialSolution
 			<div className="relative rounded-2xl p-4 shadow-md" style={{ background: "rgba(255,255,255,0.55)" }}>
 				<table
 					className="border-collapse"
-					style={{ filter: blurred ? "blur(6px)" : "none", userSelect: blurred ? "none" : "auto" }}
+					style={{ filter: blurred ? "blur(28px)" : "none", userSelect: blurred ? "none" : "auto" }}
 					onMouseLeave={handleMouseUp}
 				>
 					<thead>{renderColumnClues()}</thead>
