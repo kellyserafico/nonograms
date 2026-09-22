@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Board from "../components/Board";
 import { getRoom, getPlayerName, getIsHost, setIsHost, clearRoom } from "../roomStore";
+import { DARK, LIGHT } from "../theme";
 
 const fmtTime = (s) =>
 	s == null ? "DNF" : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -114,6 +115,7 @@ function MultiplayerLobby() {
 	const playersMapRef = useRef({});
 	const boardSizeRef = useRef(10);
 
+	const [dark, setDark] = useState(true);
 	const [isHost, setIsHostState] = useState(getIsHost());
 	const [players, setPlayers] = useState([]);
 	const [copied, setCopied] = useState(false);
@@ -261,6 +263,144 @@ function MultiplayerLobby() {
 		return false;
 	};
 
+	const t = dark ? DARK : LIGHT;
+
+	// ── Waiting phase: new dark-themed lobby UI ───────────────────────────────
+	if (phase === "waiting") {
+		return (
+			<div className="min-h-screen flex flex-col relative overflow-hidden"
+				style={{ background: t.bg, color: t.text, transition: "background 0.35s, color 0.35s", fontFamily: "Outfit, sans-serif" }}
+			>
+				{/* Grid bg */}
+				<div className="pointer-events-none absolute inset-0" style={{
+					backgroundImage: `linear-gradient(${t.gridBg} 1px, transparent 1px), linear-gradient(90deg, ${t.gridBg} 1px, transparent 1px)`,
+					backgroundSize: "32px 32px", opacity: dark ? 0.2 : 0.35,
+				}} />
+				<div className="pointer-events-none absolute" style={{
+					width: 500, height: 500, borderRadius: "50%",
+					background: `radial-gradient(circle, ${t.glowColor}22 0%, transparent 70%)`,
+					top: "30%", left: "50%", transform: "translate(-50%, -50%)",
+				}} />
+
+				{/* Header */}
+				<header className="relative z-10 flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: t.border }}>
+					<button
+						onClick={leaveRoom}
+						style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "DM Mono, monospace", fontSize: "0.72rem", color: t.textDim, letterSpacing: "0.06em", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+						onMouseEnter={(e) => (e.currentTarget.style.color = t.accent)}
+						onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
+					>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+							<path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+						</svg>
+						leave
+					</button>
+					<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.72rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+						nonogram / multi
+					</span>
+					<button
+						onClick={() => setDark((d) => !d)}
+						style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 2, padding: "5px 12px", fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, cursor: "pointer", letterSpacing: "0.12em" }}
+						onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.color = t.accent; }}
+						onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+					>
+						{dark ? "[ light ]" : "[ dark ]"}
+					</button>
+				</header>
+
+				{/* Content */}
+				<div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
+					<div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%", maxWidth: 400 }}>
+						<div>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+								lobby created
+							</span>
+							<h2 style={{ fontSize: "1.6rem", fontWeight: 700, color: t.text, margin: "8px 0 4px", letterSpacing: "-0.02em" }}>
+								Waiting for players
+							</h2>
+							<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: t.textDim }}>
+								share the room code with your friends
+							</p>
+						</div>
+
+						{/* Room code */}
+						<div style={{
+							border: `1px solid ${t.accent}40`, borderRadius: 2,
+							padding: "24px 28px", background: t.card,
+							textAlign: "center", position: "relative", overflow: "hidden",
+						}}>
+							<div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${t.accent}, transparent)` }} />
+							<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>
+								room code
+							</p>
+							<button
+								onClick={copyCode}
+								style={{ fontSize: "2.8rem", fontWeight: 700, letterSpacing: "0.22em", color: t.accent, fontFamily: "DM Mono, monospace", lineHeight: 1, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+								title="click to copy"
+							>
+								{copied ? "copied!" : roomCode}
+							</button>
+						</div>
+
+						{/* Player list */}
+						<div style={{ border: `1px solid ${t.border}`, borderRadius: 2, overflow: "hidden" }}>
+							<div style={{ padding: "8px 14px", borderBottom: `1px solid ${t.border}`, background: t.card }}>
+								<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+									players — {sortedPlayers.length} / 4
+								</span>
+							</div>
+							{sortedPlayers.map((name, i) => (
+								<div key={name} style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, background: t.card, borderTop: i > 0 ? `1px solid ${t.border}` : "none" }}>
+									<div style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent }} />
+									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>{name}</span>
+									{name === myName && <span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, letterSpacing: "0.06em" }}>(you)</span>}
+									{i === 0 && <span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.accent, marginLeft: "auto", letterSpacing: "0.08em" }}>host</span>}
+								</div>
+							))}
+							{Array.from({ length: Math.max(0, 4 - sortedPlayers.length) }, (_, i) => (
+								<div key={`empty-${i}`} style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, background: t.card, borderTop: `1px solid ${t.border}` }}>
+									<div style={{ width: 6, height: 6, borderRadius: "50%", background: t.border }} />
+									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.textDim, fontStyle: "italic" }}>waiting...</span>
+								</div>
+							))}
+						</div>
+
+						{isHost ? (
+							<button
+								onClick={startGame}
+								style={{
+									fontFamily: "DM Mono, monospace", fontSize: "0.78rem",
+									padding: "10px 28px", borderRadius: 2,
+									border: `1px solid ${t.accent}`, background: t.accent, color: t.accentFg,
+									cursor: "pointer", letterSpacing: "0.08em", width: "100%",
+								}}
+							>
+								start game →
+							</button>
+						) : (
+							<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: t.textDim, textAlign: "center" }}>
+								waiting for the host to start…
+							</p>
+						)}
+
+						<button
+							onClick={leaveRoom}
+							style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: t.textDim, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.06em", padding: 0, textAlign: "center" }}
+							onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
+							onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
+						>
+							cancel lobby
+						</button>
+					</div>
+				</div>
+
+				<style>{`
+					@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+				`}</style>
+			</div>
+		);
+	}
+
 	return (
 		<div className="flex flex-col items-center min-h-screen px-6 py-8"
 			style={{ background: "linear-gradient(135deg, #fde8f0 0%, #e8f0fd 50%, #e8fdf0 100%)" }}>
@@ -276,7 +416,7 @@ function MultiplayerLobby() {
 			{/* Header */}
 			<div className="mb-1 text-4xl">🌸</div>
 			<h1 className="text-4xl font-extrabold mb-1" style={{ color: "#c084a0" }}>
-				{phase === "waiting" ? "Room Lobby" : `Round ${currentRound} / ${settings.rounds}`}
+				{`Round ${currentRound} / ${settings.rounds}`}
 			</h1>
 
 			{/* Room code */}
@@ -285,58 +425,6 @@ function MultiplayerLobby() {
 				style={{ background: "#f7c5dc", color: "#9b5b7a" }}>
 				{copied ? "✓ Copied!" : `Room: ${roomCode}`}
 			</button>
-
-			{/* ── WAITING PHASE ────────────────────────────────────────────── */}
-			{phase === "waiting" && (
-				<>
-					<div className="rounded-2xl p-5 shadow-md mb-6 w-72 text-center"
-						style={{ background: "rgba(255,255,255,0.6)" }}>
-						<h2 className="text-lg font-bold mb-3" style={{ color: "#c084a0" }}>
-							Players {players.length > 0 && `(${players.length})`}
-						</h2>
-						{players.length === 0 ? (
-							<p className="text-sm animate-pulse" style={{ color: "#c4a8bc" }}>
-								Waiting for players to join…
-							</p>
-						) : (
-							<ul className="space-y-2">
-								{sortedPlayers.map((name, i) => (
-									<li key={i} className="flex items-center justify-center gap-2 font-semibold"
-										style={{ color: "#9b5b7a" }}>
-										<span className="w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold text-white"
-											style={{ background: "#e8a0c0" }}>
-											{i + 1}
-										</span>
-										{name}
-										{name === myName && <span className="text-xs" style={{ color: "#c4a8bc" }}>(you)</span>}
-										{i === 0 && players.length > 1 && name !== myName && (
-											<span className="text-xs" style={{ color: "#c4a8bc" }}>👑 host</span>
-										)}
-									</li>
-								))}
-							</ul>
-						)}
-						{players.length > 0 && (
-							<p className="text-xs mt-3" style={{ color: "#c4a8bc" }}>
-								Share the room code so friends can join!
-							</p>
-						)}
-					</div>
-
-					{isHost && players.length >= 1 && (
-						<button onClick={startGame}
-							className="font-bold rounded-full px-10 py-3 mb-4 shadow-md transition-transform hover:scale-105 text-lg"
-							style={{ background: "#c5dff7", color: "#3a6a9b" }}>
-							▶ Start Game
-						</button>
-					)}
-					{!isHost && (
-						<p className="text-sm mb-4 animate-pulse" style={{ color: "#c4a8bc" }}>
-							Waiting for the host to start…
-						</p>
-					)}
-				</>
-			)}
 
 			{/* ── PLAYING PHASE ────────────────────────────────────────────── */}
 			{(phase === "playing" || phase === "roundOver") && (

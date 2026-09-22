@@ -1,204 +1,413 @@
-import React, { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { DARK, LIGHT } from "../theme";
 import { colyseusClient } from "../ColyseusClient";
 import { setRoom } from "../roomStore";
 
-const DEFAULT_SETTINGS = { maxPlayers: 4, boardVisibility: true, rounds: 1, boardSize: 10 };
+// ── Shared pieces ─────────────────────────────────────────────────────────────
 
-function SettingsModal({ settings, onChange, onConfirm, onCancel }) {
+function GridBg({ t, dark }) {
 	return (
-		<div className="fixed inset-0 flex items-center justify-center z-50"
-			style={{ background: "rgba(200,160,180,0.25)", backdropFilter: "blur(4px)" }}>
-			<div className="rounded-3xl p-8 w-80 shadow-xl flex flex-col gap-5"
-				style={{ background: "#fff0f6", border: "2px solid #f7c5dc" }}>
-				<h2 className="text-2xl font-extrabold text-center" style={{ color: "#c084a0" }}>
-					🛠 Lobby Settings
-				</h2>
+		<div className="pointer-events-none absolute inset-0" style={{
+			backgroundImage: `linear-gradient(${t.gridBg} 1px, transparent 1px), linear-gradient(90deg, ${t.gridBg} 1px, transparent 1px)`,
+			backgroundSize: "32px 32px",
+			opacity: dark ? 0.2 : 0.35,
+		}} />
+	);
+}
 
-				{/* Max players */}
-				<label className="flex flex-col gap-1">
-					<span className="text-sm font-semibold" style={{ color: "#b07090" }}>
-						Max Players (1–10)
-					</span>
-					<input
-						type="number" min={1} max={10}
-						value={settings.maxPlayers}
-						onChange={(e) => onChange("maxPlayers", Math.min(10, Math.max(1, Number(e.target.value))))}
-						className="rounded-full px-4 py-2 text-center outline-none text-lg font-bold"
-						style={{ border: "2px solid #f7c5dc", color: "#9b5b7a", background: "white" }}
-					/>
-				</label>
-
-				{/* Board size */}
-				<label className="flex flex-col gap-1">
-					<span className="text-sm font-semibold" style={{ color: "#b07090" }}>
-						Board Size (5–20)
-					</span>
-					<input
-						type="number" min={5} max={20}
-						value={settings.boardSize}
-						onChange={(e) => onChange("boardSize", Math.min(20, Math.max(5, Number(e.target.value))))}
-						className="rounded-full px-4 py-2 text-center outline-none text-lg font-bold"
-						style={{ border: "2px solid #f7c5dc", color: "#9b5b7a", background: "white" }}
-					/>
-				</label>
-
-				{/* Rounds */}
-				<label className="flex flex-col gap-1">
-					<span className="text-sm font-semibold" style={{ color: "#b07090" }}>
-						Rounds (1–10)
-					</span>
-					<input
-						type="number" min={1} max={10}
-						value={settings.rounds}
-						onChange={(e) => onChange("rounds", Math.min(10, Math.max(1, Number(e.target.value))))}
-						className="rounded-full px-4 py-2 text-center outline-none text-lg font-bold"
-						style={{ border: "2px solid #f7c5dc", color: "#9b5b7a", background: "white" }}
-					/>
-				</label>
-
-				{/* Board visibility */}
-				<label className="flex items-center justify-between gap-3 cursor-pointer">
-					<span className="text-sm font-semibold" style={{ color: "#b07090" }}>
-						Board Visibility
-						<span className="block text-xs font-normal" style={{ color: "#c4a8bc" }}>
-							Show opponents' boards during game
-						</span>
-					</span>
-					<button
-						onClick={() => onChange("boardVisibility", !settings.boardVisibility)}
-						className="w-12 h-6 rounded-full transition-colors relative flex-shrink-0"
-						style={{ background: settings.boardVisibility ? "#f7a8c0" : "#e0d0e8" }}
-					>
-						<span
-							className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-							style={{ left: settings.boardVisibility ? "calc(100% - 1.375rem)" : "0.125rem" }}
-						/>
-					</button>
-				</label>
-
-				<div className="flex gap-3 mt-2">
-					<button onClick={onCancel}
-						className="flex-1 rounded-full py-2 font-semibold transition-transform hover:scale-105"
-						style={{ background: "#e8d5f0", color: "#8b5b9b" }}>
-						Cancel
-					</button>
-					<button onClick={onConfirm}
-						className="flex-1 rounded-full py-2 font-semibold transition-transform hover:scale-105"
-						style={{ background: "#c5f7dc", color: "#3a9b6a" }}>
-						Create!
-					</button>
-				</div>
-			</div>
+function MiniGrid({ t }) {
+	const pattern = [
+		[1,0,1,0,1],
+		[0,1,0,1,0],
+		[1,0,1,0,1],
+		[0,1,0,1,0],
+		[1,0,1,0,1],
+	];
+	return (
+		<div style={{ display: "grid", gridTemplateColumns: "repeat(5, 10px)", gap: 2, opacity: 0.35 }}>
+			{pattern.flat().map((on, i) => (
+				<div key={i} style={{
+					width: 10, height: 10,
+					background: on ? t.accent : t.border,
+					borderRadius: 1, transition: "background 0.35s",
+				}} />
+			))}
 		</div>
 	);
 }
 
-function Multiplayer() {
-	const navigate = useNavigate();
-	const [roomCode, setRoomCode] = useState("");
-	const [playerName, setPlayerName] = useState("");
-	const [loading, setLoading] = useState(false);
-	const [showSettings, setShowSettings] = useState(false);
-	const [settings, setSettings] = useState({ ...DEFAULT_SETTINGS });
+function InputField({ label, value, onChange, placeholder, maxLength, t, autoFocus }) {
+	const [focused, setFocused] = useState(false);
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+			<label style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+				{label}
+			</label>
+			<input
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				placeholder={placeholder}
+				maxLength={maxLength}
+				autoFocus={autoFocus}
+				onFocus={() => setFocused(true)}
+				onBlur={() => setFocused(false)}
+				style={{
+					fontFamily: "DM Mono, monospace", fontSize: "0.9rem",
+					padding: "10px 14px", borderRadius: 2,
+					border: `1px solid ${focused ? t.accent : t.border}`,
+					background: t.card, color: t.text,
+					outline: "none", width: "100%",
+					transition: "border-color 0.2s", letterSpacing: "0.04em",
+				}}
+			/>
+		</div>
+	);
+}
 
-	const updateSetting = (key, value) => setSettings((s) => ({ ...s, [key]: value }));
+function PrimaryButton({ children, onClick, disabled, t }) {
+	return (
+		<button
+			onClick={onClick}
+			disabled={disabled}
+			style={{
+				fontFamily: "DM Mono, monospace", fontSize: "0.78rem",
+				padding: "10px 28px", borderRadius: 2,
+				border: `1px solid ${disabled ? t.border : t.accent}`,
+				background: disabled ? "transparent" : t.accent,
+				color: disabled ? t.textDim : t.accentFg,
+				cursor: disabled ? "not-allowed" : "pointer",
+				letterSpacing: "0.08em", transition: "all 0.15s",
+				opacity: disabled ? 0.5 : 1, width: "100%",
+			}}
+		>
+			{children}
+		</button>
+	);
+}
 
-	const openSettings = () => {
-		if (!playerName.trim()) return alert("Please enter your name first.");
-		setShowSettings(true);
-	};
+// ── Create lobby ──────────────────────────────────────────────────────────────
 
-	const createLobby = async () => {
-		setShowSettings(false);
-		setLoading(true);
+function CreateLobby({ t, onBack, navigate }) {
+	const [name, setName] = useState("");
+	const [creating, setCreating] = useState(false);
+	const [error, setError] = useState("");
+	const roomCode = useRef(
+		Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 23)]).join("")
+	).current;
+
+	const canCreate = name.trim().length >= 2 && !creating;
+
+	const handleCreate = async () => {
+		setCreating(true);
+		setError("");
 		try {
-			const room = await colyseusClient.create("game_room", { name: playerName, ...settings });
-			setRoom(room, playerName, true);
-			navigate(`/multiplayer/${room.id}`);
-		} catch (error) {
-			console.error("Failed to create room:", error);
-			alert("Could not create room.");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const joinLobby = async () => {
-		if (!playerName.trim()) return alert("Please enter your name first.");
-		if (!roomCode.trim()) return alert("Please enter a room code.");
-		setLoading(true);
-		try {
-			const room = await colyseusClient.joinById(roomCode.trim(), { name: playerName });
-			setRoom(room, playerName, false);
-			navigate(`/multiplayer/${room.id}`);
-		} catch (error) {
-			console.error("Failed to join room:", error);
-			alert("Room not found. Make sure the host has created it.");
-		} finally {
-			setLoading(false);
+			const room = await colyseusClient.create("game_room", {
+				name: name.trim(),
+				roomCode,
+				maxPlayers: 4,
+			});
+			setRoom(room, name.trim(), true);
+				navigate(`/multiplayer/${roomCode}`);
+		} catch {
+			setCreating(false);
+			setError("could not connect to server. is it running?");
 		}
 	};
 
 	return (
-		<div className="flex flex-col items-center justify-center h-screen"
-			style={{ background: "linear-gradient(135deg, #fde8f0 0%, #e8f0fd 50%, #e8fdf0 100%)" }}>
+		<div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%", maxWidth: 400, animation: "fadeUp 0.25s ease" }}>
+			<div>
+				<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+					01 / create
+				</span>
+				<h2 style={{ fontSize: "1.6rem", fontWeight: 700, color: t.text, margin: "8px 0 4px", letterSpacing: "-0.02em" }}>
+					Create a lobby
+				</h2>
+				<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: t.textDim, lineHeight: 1.6 }}>
+					a room code will be generated for your friends to join.
+				</p>
+			</div>
 
-			{showSettings && (
-				<SettingsModal
-					settings={settings}
-					onChange={updateSetting}
-					onConfirm={createLobby}
-					onCancel={() => setShowSettings(false)}
-				/>
+			<InputField label="your name" value={name} onChange={setName} placeholder="e.g. pixel_solver" maxLength={20} t={t} autoFocus />
+
+			{error && (
+				<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: "#ff8080", letterSpacing: "0.04em" }}>
+					{error}
+				</span>
 			)}
 
-			<div className="mb-2 text-5xl">🎮</div>
-			<h1 className="text-5xl font-extrabold mb-2 tracking-wide" style={{ color: "#c084a0" }}>
-				Multiplayer
-			</h1>
-			<p className="mb-8 text-sm font-medium" style={{ color: "#c4a8bc" }}>play with friends ✨</p>
-
-			<input
-				type="text"
-				className="text-lg rounded-full px-5 py-2 mb-6 text-center outline-none shadow-sm w-56"
-				style={{ border: "2px solid #f7c5dc", color: "#9b5b7a", background: "#fff0f6" }}
-				placeholder="Enter your name"
-				value={playerName}
-				onChange={(e) => setPlayerName(e.target.value)}
-				disabled={loading}
-			/>
+			<PrimaryButton onClick={handleCreate} disabled={!canCreate} t={t}>
+				{creating ? "connecting..." : "create lobby →"}
+			</PrimaryButton>
 
 			<button
-				className="font-bold rounded-full px-8 py-2 mb-6 shadow-sm transition-transform hover:scale-105 disabled:opacity-50"
-				style={{ background: "#c5f7dc", color: "#3a9b6a" }}
-				onClick={openSettings}
-				disabled={loading}
+				onClick={onBack}
+				style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: t.textDim, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.06em", padding: 0, textAlign: "center" }}
+				onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
+				onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
 			>
-				Create Lobby
+				← go back
 			</button>
+		</div>
+	);
+}
 
-			<div className="flex gap-2">
-				<input
-					type="text"
-					className="text-lg rounded-full px-5 py-2 text-center outline-none shadow-sm w-44"
-					style={{ border: "2px solid #c5dff7", color: "#3a6a9b", background: "#f0f6ff" }}
-					placeholder="Room Code"
-					value={roomCode}
-					onChange={(e) => setRoomCode(e.target.value)}
-					disabled={loading}
-				/>
-				<button
-					className="font-bold rounded-full px-6 py-2 shadow-sm transition-transform hover:scale-105 disabled:opacity-50"
-					style={{ background: "#c5dff7", color: "#3a6a9b" }}
-					onClick={joinLobby}
-					disabled={loading}
-				>
-					Join
-				</button>
+// ── Join room ─────────────────────────────────────────────────────────────────
+
+const CODE_LENGTH = 4;
+
+function JoinRoom({ t, dark, onBack, navigate }) {
+	const [name, setName] = useState("");
+	const [code, setCode] = useState("");
+	const [error, setError] = useState("");
+	const [joining, setJoining] = useState(false);
+	const inputRefs = useRef([]);
+
+	const handleCodeKey = (i, e) => {
+		if (e.key === "Backspace" && !code[i] && i > 0) {
+			inputRefs.current[i - 1]?.focus();
+			setCode((c) => c.slice(0, i - 1));
+		}
+	};
+
+	const handleCodeInput = (i, val) => {
+		const char = val.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(-1);
+		if (!char) return;
+		const arr = code.padEnd(CODE_LENGTH, " ").split("");
+		arr[i] = char;
+		const next = arr.join("").trimEnd();
+		setCode(next);
+		setError("");
+		if (i < CODE_LENGTH - 1) inputRefs.current[i + 1]?.focus();
+	};
+
+	const handleCodePaste = (e) => {
+		e.preventDefault();
+		const pasted = e.clipboardData.getData("text").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, CODE_LENGTH);
+		setCode(pasted);
+		const focusIdx = Math.min(pasted.length, CODE_LENGTH - 1);
+		inputRefs.current[focusIdx]?.focus();
+	};
+
+	const canJoin = name.trim().length >= 2 && code.length === CODE_LENGTH;
+
+	const handleJoin = async () => {
+		setJoining(true);
+		setError("");
+		try {
+			const room = await colyseusClient.join("game_room", {
+				name: name.trim(),
+				roomCode: code,
+			});
+			setRoom(room, name.trim(), false);
+			navigate(`/multiplayer/${code}`);
+		} catch {
+			setJoining(false);
+			setError(`room "${code}" not found. check the code and try again.`);
+		}
+	};
+
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%", maxWidth: 400, animation: "fadeUp 0.25s ease" }}>
+			<div>
+				<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+					02 / join
+				</span>
+				<h2 style={{ fontSize: "1.6rem", fontWeight: 700, color: t.text, margin: "8px 0 4px", letterSpacing: "-0.02em" }}>
+					Join a room
+				</h2>
+				<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: t.textDim, lineHeight: 1.6 }}>
+					enter the 4-letter code shared by the host.
+				</p>
+			</div>
+
+			<InputField label="your name" value={name} onChange={(v) => { setName(v); setError(""); }} placeholder="e.g. grid_master" maxLength={20} t={t} autoFocus />
+
+			<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+				<label style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+					room code
+				</label>
+				<div style={{ display: "flex", gap: 8 }} onPaste={handleCodePaste}>
+					{Array.from({ length: CODE_LENGTH }, (_, i) => (
+						<input
+							key={i}
+							ref={(el) => { inputRefs.current[i] = el; }}
+							value={code[i] ?? ""}
+							onChange={(e) => handleCodeInput(i, e.target.value)}
+							onKeyDown={(e) => handleCodeKey(i, e)}
+							maxLength={1}
+							style={{
+								width: 56, height: 60, textAlign: "center",
+								fontFamily: "DM Mono, monospace", fontSize: "1.5rem", fontWeight: 600,
+								textTransform: "uppercase", letterSpacing: "0.04em",
+								borderRadius: 2, border: `1px solid ${error ? "#ff6e6e80" : code[i] ? t.accent : t.border}`,
+								background: t.card, color: code[i] ? t.accent : t.text,
+								outline: "none", transition: "border-color 0.15s, color 0.15s",
+								caretColor: "transparent",
+							}}
+							onFocus={(e) => { if (!error) e.currentTarget.style.borderColor = t.accent; }}
+							onBlur={(e) => { e.currentTarget.style.borderColor = code[i] ? t.accent : t.border; }}
+						/>
+					))}
+				</div>
+				{error && (
+					<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: dark ? "#ff8080" : "#cc3322", letterSpacing: "0.04em", animation: "fadeUp 0.2s ease" }}>
+						{error}
+					</span>
+				)}
+			</div>
+
+			<PrimaryButton onClick={handleJoin} disabled={!canJoin || joining} t={t}>
+				{joining ? "connecting..." : "join room →"}
+			</PrimaryButton>
+
+			<button
+				onClick={onBack}
+				style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: t.textDim, background: "none", border: "none", cursor: "pointer", letterSpacing: "0.06em", padding: 0, textAlign: "center" }}
+				onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
+				onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
+			>
+				← go back
+			</button>
+		</div>
+	);
+}
+
+// ── Choose view ───────────────────────────────────────────────────────────────
+
+function ChooseView({ t, onChoose }) {
+	const [hovered, setHovered] = useState(null);
+
+	const options = [
+		{ key: "create", badge: "01 / host", title: "Create lobby", description: "generate a room code and invite friends to join." },
+		{ key: "join",   badge: "02 / guest", title: "Join a room",  description: "enter a 4-letter code to join an existing game." },
+	];
+
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", maxWidth: 480, animation: "fadeUp 0.25s ease" }}>
+			<div>
+				<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+					02 / multiplayer
+				</span>
+				<h2 style={{ fontSize: "1.8rem", fontWeight: 700, color: t.text, margin: "8px 0 4px", letterSpacing: "-0.02em" }}>
+					Play with friends
+				</h2>
+				<p style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: t.textDim, lineHeight: 1.6 }}>
+					create a lobby or join one with a room code.
+				</p>
+			</div>
+
+			<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+				{options.map((opt) => (
+					<button
+						key={opt.key}
+						onClick={() => onChoose(opt.key)}
+						onMouseEnter={() => setHovered(opt.key)}
+						onMouseLeave={() => setHovered(null)}
+						style={{
+							textAlign: "left", cursor: "pointer", padding: "22px 26px",
+							borderRadius: 2, outline: "none",
+							border: `1px solid ${hovered === opt.key ? t.accent + "60" : t.border}`,
+							background: hovered === opt.key ? t.cardHover : t.card,
+							transition: "all 0.2s", position: "relative", overflow: "hidden",
+						}}
+					>
+						<div style={{
+							position: "absolute", top: 0, left: 0, right: 0, height: 1,
+							background: hovered === opt.key ? `linear-gradient(90deg, transparent, ${t.accent}, transparent)` : "transparent",
+							transition: "background 0.4s",
+						}} />
+						<span style={{ display: "block", fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: hovered === opt.key ? t.accent : t.textDim, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, transition: "color 0.2s" }}>
+							{opt.badge}
+						</span>
+						<span style={{ display: "block", fontSize: "1.15rem", fontWeight: 600, color: hovered === opt.key ? t.text : t.textMuted, marginBottom: 6, transition: "color 0.2s" }}>
+							{opt.title}
+						</span>
+						<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.74rem", color: t.textDim, lineHeight: 1.5 }}>
+							{opt.description}
+						</span>
+						<div style={{ position: "absolute", bottom: 22, right: 24, color: hovered === opt.key ? t.accent : t.border, transform: hovered === opt.key ? "translateX(4px)" : "translateX(0)", transition: "all 0.2s" }}>
+							<svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+								<path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						</div>
+					</button>
+				))}
 			</div>
 		</div>
 	);
 }
 
-export default Multiplayer;
+// ── Root page ─────────────────────────────────────────────────────────────────
+
+export default function Multiplayer() {
+	const navigate = useNavigate();
+	const [dark, setDark] = useState(true);
+	const [view, setView] = useState("choose");
+
+	const t = dark ? DARK : LIGHT;
+
+	const handleBack = () => {
+		if (view === "choose") navigate("/");
+		else setView("choose");
+	};
+
+	return (
+		<div
+			className="min-h-screen flex flex-col relative overflow-hidden"
+			style={{ background: t.bg, color: t.text, transition: "background 0.35s, color 0.35s", fontFamily: "Outfit, sans-serif" }}
+		>
+			<GridBg t={t} dark={dark} />
+
+			<div className="pointer-events-none absolute" style={{
+				width: 500, height: 500, borderRadius: "50%",
+				background: `radial-gradient(circle, ${t.glowColor}22 0%, transparent 70%)`,
+				top: "30%", left: "50%", transform: "translate(-50%, -50%)",
+			}} />
+
+			<header className="relative z-10 flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: t.border }}>
+				<button
+					onClick={handleBack}
+					style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "DM Mono, monospace", fontSize: "0.72rem", color: t.textDim, letterSpacing: "0.06em", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }}
+					onMouseEnter={(e) => (e.currentTarget.style.color = t.accent)}
+					onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
+				>
+					<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+						<path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+					</svg>
+					back
+				</button>
+
+				<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.72rem", color: t.accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+					nonogram / multi
+				</span>
+
+				<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+					<MiniGrid t={t} />
+					<button
+						onClick={() => setDark((d) => !d)}
+						style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 2, padding: "5px 12px", fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, cursor: "pointer", letterSpacing: "0.12em" }}
+						onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.color = t.accent; }}
+						onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+					>
+						{dark ? "[ light ]" : "[ dark ]"}
+					</button>
+				</div>
+			</header>
+
+			<div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
+				{view === "choose" && <ChooseView t={t} onChoose={setView} />}
+				{view === "create" && <CreateLobby t={t} onBack={() => setView("choose")} navigate={navigate} />}
+				{view === "join"   && <JoinRoom   t={t} dark={dark} onBack={() => setView("choose")} navigate={navigate} />}
+			</div>
+
+			<style>{`
+				@keyframes fadeUp {
+					from { opacity: 0; transform: translateY(10px); }
+					to   { opacity: 1; transform: translateY(0); }
+				}
+			`}</style>
+		</div>
+	);
+}

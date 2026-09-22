@@ -9,7 +9,7 @@ const port = 3001;
 const server = createServer(app);
 const gameServer = new colyseus.Server({ server });
 
-gameServer.define("game_room", GameRoom); // ✅ Defines "game_room"
+gameServer.define("game_room", GameRoom).filterBy(["roomCode"]); // filter by custom 4-letter code
 
 if (process.env.NODE_ENV === "production") {
 	app.use(express.static(path.join(__dirname, "../client/dist")));
