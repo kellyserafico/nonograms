@@ -9,12 +9,14 @@ const port = 3001;
 const server = createServer(app);
 const gameServer = new colyseus.Server({ server });
 
-gameServer.define("game_room", GameRoom); // ✅ Defines "game_room"
+gameServer.define("game_room", GameRoom).filterBy(["roomCode"]); // filter by custom 4-letter code
 
-app.use(express.static(path.join(__dirname, "../nonograms/dist")));
-app.get("*", (req, res) => {
-	res.sendFile(path.resolve(__dirname, "../nonograms/dist/index.html"));
-});
+if (process.env.NODE_ENV === "production") {
+	app.use(express.static(path.join(__dirname, "../client/dist")));
+	app.get("*", (req, res) => {
+		res.sendFile(path.resolve(__dirname, "../client/dist/index.html"));
+	});
+}
 
 server.listen(port, () => {
 	console.log(`✅ Colyseus server running at http://localhost:${port}`);
