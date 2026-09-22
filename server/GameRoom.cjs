@@ -7,9 +7,10 @@ class GameRoom extends colyseus.Room {
 
 		this.settings = {
 			maxPlayers: Math.min(Math.max(options.maxPlayers || 4, 1), 10),
-			boardVisibility: options.boardVisibility !== false,
+			boardVisibility: options.boardVisibility === true,
 			rounds: Math.min(Math.max(options.rounds || 1, 1), 10),
 			boardSize: Math.min(Math.max(options.boardSize || 10, 5), 20),
+			firstTo: null,
 		};
 		this.maxClients = this.settings.maxPlayers;
 
@@ -18,8 +19,10 @@ class GameRoom extends colyseus.Room {
 		this.finishedPlayers = []; // per-round finishes
 		this.cumulativeScores = {}; // sessionId -> total rank points (lower = better)
 
-		this.onMessage("start_game", (client) => {
+		this.onMessage("start_game", (client, msg) => {
 			if (client.sessionId !== this.hostId) return;
+			if (msg?.boardVisibility !== undefined) this.settings.boardVisibility = !!msg.boardVisibility;
+			if (msg?.firstTo !== undefined) this.settings.firstTo = Math.min(Math.max(msg.firstTo, 1), this.maxClients);
 			this.currentRound = 1;
 			this.finishedPlayers = [];
 			const puzzle = this.generatePuzzle(this.settings.boardSize);
@@ -51,7 +54,10 @@ class GameRoom extends colyseus.Room {
 			});
 
 			const totalPlayers = Object.keys(this.state.players).length;
-			if (this.finishedPlayers.length >= totalPlayers) {
+			const threshold = this.settings.firstTo
+				? Math.min(this.settings.firstTo, totalPlayers)
+				: totalPlayers;
+			if (this.finishedPlayers.length >= threshold) {
 				this.endRound();
 			}
 		});
