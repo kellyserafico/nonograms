@@ -333,7 +333,7 @@ export default function SinglePlayer() {
 										>
 											{cell === 2 && (
 												<svg width={CELL * 0.38} height={CELL * 0.38} viewBox="0 0 12 12" fill="none">
-													<path d="M2 2l8 8M10 2L2 10" stroke={t.textDim} strokeWidth="1.5" strokeLinecap="round" />
+													<path d="M2 2l8 8M10 2L2 10" stroke="#ff5555" strokeWidth="1.5" strokeLinecap="round" />
 												</svg>
 											)}
 										</div>
