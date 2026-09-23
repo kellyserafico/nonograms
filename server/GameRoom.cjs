@@ -25,6 +25,7 @@ class GameRoom extends colyseus.Room {
 			if (msg?.firstTo !== undefined) this.settings.firstTo = Math.min(Math.max(msg.firstTo, 1), this.maxClients);
 			this.currentRound = 1;
 			this.finishedPlayers = [];
+			Object.keys(this.cumulativeScores).forEach((id) => { this.cumulativeScores[id] = 0; });
 			const puzzle = this.generatePuzzle(this.settings.boardSize);
 			this.broadcast("game_started", {
 				settings: this.settings,

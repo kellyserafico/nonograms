@@ -165,30 +165,80 @@ function LeaderboardOverlay({ roundLeaderboard, overallLeaderboard, round, total
 }
 
 // ─── Game Over screen ────────────────────────────────────────────────────────
-function GameOverScreen({ leaderboard, onLeave }) {
+function GameOverScreen({ leaderboard, onLeave, onRematch }) {
+	const winner = leaderboard[0];
 	return (
-		<div className="flex flex-col items-center min-h-screen px-6 py-12"
-			style={{ background: "linear-gradient(135deg, #fde8f0 0%, #e8f0fd 50%, #e8fdf0 100%)" }}>
-			<div className="text-6xl mb-3">🎉</div>
-			<h1 className="text-4xl font-extrabold mb-1" style={{ color: "#c084a0" }}>Game Over!</h1>
-			<p className="text-sm mb-8" style={{ color: "#c4a8bc" }}>Final Standings</p>
-			<div className="rounded-2xl p-6 w-80 shadow-md" style={{ background: "rgba(255,255,255,0.65)" }}>
-				<ul className="space-y-2">
+		<div style={{
+			minHeight: "100vh", background: "#090b10",
+			display: "flex", alignItems: "center", justifyContent: "center",
+		}}>
+			<div style={{
+				background: "#0f1320", border: "1px solid #1e2436",
+				borderRadius: 12, padding: "36px 40px", width: 320,
+				display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+			}}>
+				{/* Header */}
+				<div style={{
+					fontFamily: "DM Mono, monospace", fontSize: "0.65rem",
+					color: "#565f7a", letterSpacing: "0.15em", marginBottom: 20,
+				}}>— GAME OVER —</div>
+
+				{/* Winner */}
+				{winner && (
+					<>
+						<div style={{
+							fontFamily: "Outfit, sans-serif", fontWeight: 700,
+							fontSize: "2rem", color: "#e8eaf0", marginBottom: 6,
+						}}>{winner.name}</div>
+						<div style={{
+							fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
+							color: "#565f7a", marginBottom: 28,
+						}}>wins the match</div>
+					</>
+				)}
+
+				{/* Leaderboard */}
+				<div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
 					{leaderboard.map((entry, i) => (
-						<li key={i} className="flex justify-between items-center px-4 py-2 rounded-full"
-							style={{ background: i === 0 ? "#fde8f0" : "rgba(255,255,255,0.5)" }}>
-							<span className="font-bold" style={{ color: "#9b5b7a" }}>
-								{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${entry.rank}`} {entry.name}
-							</span>
-							<span className="text-xs" style={{ color: "#c4a8bc" }}>{entry.points} pts</span>
-						</li>
+						<div key={i} style={{
+							display: "flex", alignItems: "center", gap: 10,
+						}}>
+							<span style={{
+								fontFamily: "DM Mono, monospace", fontSize: "0.7rem",
+								color: "#565f7a", width: 20, textAlign: "right",
+							}}>{entry.rank}.</span>
+							<span style={{
+								width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+								background: PLAYER_COLORS[i] || "#565f7a",
+							}} />
+							<span style={{
+								fontFamily: "DM Mono, monospace", fontSize: "0.8rem",
+								color: "#c8cad6", flex: 1,
+							}}>{entry.name}</span>
+							<span style={{
+								fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
+								color: PLAYER_COLORS[i] || "#565f7a", fontWeight: 600,
+							}}>{entry.points}</span>
+						</div>
 					))}
-				</ul>
+				</div>
+
+				{/* Buttons */}
+				<div style={{ display: "flex", gap: 10, width: "100%" }}>
+					<button onClick={onLeave} style={{
+						flex: 1, fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
+						color: "#8b8fa8", background: "#1a1e2e", border: "1px solid #1e2436",
+						borderRadius: 6, padding: "10px 0", cursor: "pointer",
+					}}>leave</button>
+					{onRematch && (
+						<button onClick={onRematch} style={{
+							flex: 1, fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
+							color: "#090b10", background: "#6eb5ff", border: "none",
+							borderRadius: 6, padding: "10px 0", cursor: "pointer", fontWeight: 600,
+						}}>rematch →</button>
+					)}
+				</div>
 			</div>
-			<button onClick={onLeave} className="mt-8 font-bold rounded-full px-8 py-2 shadow-sm transition-transform hover:scale-105"
-				style={{ background: "#f7c5dc", color: "#9b5b7a" }}>
-				Back to Menu
-			</button>
 		</div>
 	);
 }
@@ -425,6 +475,10 @@ function MultiplayerLobby() {
 		navigate("/multiplayer");
 	};
 
+	const startRematch = () => {
+		roomRef.current?.send("start_game", settings);
+	};
+
 	const copyCode = () => {
 		navigator.clipboard.writeText(roomCode);
 		setCopied(true);
@@ -433,7 +487,7 @@ function MultiplayerLobby() {
 
 	// ── Render: game over ────────────────────────────────────────────────────
 	if (phase === "gameOver") {
-		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={leaveRoom} />;
+		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={leaveRoom} onRematch={isHost ? startRematch : null} />;
 	}
 
 	const t = dark ? DARK : LIGHT;
