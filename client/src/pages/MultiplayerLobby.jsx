@@ -277,6 +277,7 @@ function MultiplayerLobby() {
 	const [copied, setCopied] = useState(false);
 	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10, hints: false });
 	const [guestSettings, setGuestSettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10, hints: false });
+	const guestSettingsRef = useRef({ boardVisibility: false, firstTo: 1, boardSize: 10, hints: false });
 	const [localHints, setLocalHints] = useState(false);
 
 	// Game state
@@ -360,9 +361,11 @@ function MultiplayerLobby() {
 		room.onMessage("role", ({ isHost: h }) => {
 			setIsHost(h);
 			setIsHostState(h);
+			if (h) setLobbySettings({ ...guestSettingsRef.current });
 		});
 
 		room.onMessage("lobby_settings", (s) => {
+			guestSettingsRef.current = s;
 			setGuestSettings(s);
 		});
 
