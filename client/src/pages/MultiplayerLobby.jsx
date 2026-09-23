@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRoom, getPlayerName, getIsHost, setIsHost, clearRoom } from "../roomStore";
 import { DARK, LIGHT } from "../theme";
+import { useTheme } from "../useTheme";
 
 // ─── Player colors ────────────────────────────────────────────────────────────
 const PLAYER_COLORS = ["#a3ff6e", "#6eb5ff", "#ffb86e", "#d06eff"];
@@ -271,7 +272,7 @@ function MultiplayerLobby() {
 	const boardSizeRef = useRef(10);
 	const puzzleRef = useRef(null);
 
-	const [dark, setDark] = useState(true);
+	const [dark, setDark] = useTheme();
 	const [isHost, setIsHostState] = useState(getIsHost());
 	const [players, setPlayers] = useState([]);
 	const [copied, setCopied] = useState(false);

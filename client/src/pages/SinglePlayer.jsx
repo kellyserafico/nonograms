@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { DARK, LIGHT } from "../theme";
+import { useTheme } from "../useTheme";
 
 // ── Puzzle library ────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ function runsMatch(cells, clues) {
 
 export default function SinglePlayer() {
 	const navigate = useNavigate();
-	const [dark, setDark] = useState(true);
+	const [dark, setDark] = useTheme();
 	const [size, setSize] = useState(10);
 	const [sizeInput, setSizeInput] = useState("10");
 	const [puzzle, setPuzzle] = useState(() => getPuzzle(10));

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { DARK, LIGHT } from "../theme";
+import { useTheme } from "../useTheme";
 
 // ── Animated nonogram preview ────────────────────────────────────────────────
 const SIZE = 5;
@@ -71,17 +72,18 @@ function NonogramPreview({ t }) {
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const { rowClues, colClues } = calcClues(puzzle);
-	const CELL = 32;
+	const CELL = "clamp(32px, 4.5vw, 52px)";
+	const CLUE_FONT = "clamp(10px, 1.1vw, 13px)";
 
 	return (
 		<table style={{ borderCollapse: "collapse", fontFamily: "'DM Mono', monospace" }}>
 			<thead>
 				<tr>
-					<td style={{ width: 36 }} />
+					<td style={{ width: "clamp(36px, 4vw, 52px)" }} />
 					{colClues.map((clue, ci) => (
 						<td key={ci} style={{ width: CELL, textAlign: "center", paddingBottom: 6, verticalAlign: "bottom" }}>
 							{clue.map((n, i) => (
-								<div key={i} style={{ fontSize: 10, fontWeight: 500, color: t.textDim, lineHeight: 1.4 }}>{n}</div>
+								<div key={i} style={{ fontSize: CLUE_FONT, fontWeight: 500, color: t.textDim, lineHeight: 1.4 }}>{n}</div>
 							))}
 						</td>
 					))}
@@ -90,7 +92,7 @@ function NonogramPreview({ t }) {
 			<tbody>
 				{puzzle.map((row, ri) => (
 					<tr key={ri}>
-						<td style={{ textAlign: "right", paddingRight: 8, fontSize: 10, fontWeight: 500, color: t.textDim, minWidth: 36 }}>
+						<td style={{ textAlign: "right", paddingRight: 8, fontSize: CLUE_FONT, fontWeight: 500, color: t.textDim, minWidth: "clamp(36px, 4vw, 52px)" }}>
 							{rowClues[ri].join(" ")}
 						</td>
 						{row.map((_, ci) => {
@@ -125,7 +127,7 @@ function ModeCard({ badge, title, description, t, onClick }) {
 				background: hov ? t.cardHover : t.card,
 				border: `1px solid ${hov ? t.accent + "60" : t.border}`,
 				borderRadius: 2,
-				padding: "18px 22px",
+				padding: "clamp(18px, 2.2vh, 28px) clamp(22px, 2.5vw, 32px)",
 				cursor: "pointer",
 				display: "flex",
 				alignItems: "center",
@@ -138,7 +140,7 @@ function ModeCard({ badge, title, description, t, onClick }) {
 			<div style={{ flex: 1 }}>
 				<div style={{
 					fontFamily: "'DM Mono', monospace",
-					fontSize: 10,
+					fontSize: "clamp(10px, 1vw, 12px)",
 					color: t.accent,
 					letterSpacing: "0.18em",
 					textTransform: "uppercase",
@@ -149,7 +151,7 @@ function ModeCard({ badge, title, description, t, onClick }) {
 				<div style={{
 					fontFamily: "'Outfit', sans-serif",
 					fontWeight: 600,
-					fontSize: 17,
+					fontSize: "clamp(17px, 2vw, 22px)",
 					color: t.text,
 					marginBottom: 4,
 				}}>
@@ -157,7 +159,7 @@ function ModeCard({ badge, title, description, t, onClick }) {
 				</div>
 				<div style={{
 					fontFamily: "'DM Mono', monospace",
-					fontSize: 11,
+					fontSize: "clamp(11px, 1.1vw, 14px)",
 					color: t.textDim,
 					lineHeight: 1.6,
 					letterSpacing: "0.02em",
@@ -168,7 +170,7 @@ function ModeCard({ badge, title, description, t, onClick }) {
 			<div style={{
 				fontFamily: "'DM Mono', monospace",
 				color: hov ? t.accent : t.textDim,
-				fontSize: 18,
+				fontSize: "clamp(18px, 2vw, 24px)",
 				transition: "color 0.18s, transform 0.18s",
 				transform: hov ? "translateX(4px)" : "none",
 				flexShrink: 0,
@@ -190,7 +192,7 @@ function ThemeToggle({ dark, onToggle, t }) {
 				borderRadius: 2,
 				padding: "6px 14px",
 				fontFamily: "'DM Mono', monospace",
-				fontSize: 11,
+				fontSize: "clamp(11px, 1.1vw, 14px)",
 				color: t.textDim,
 				cursor: "pointer",
 				letterSpacing: "0.12em",
@@ -207,7 +209,7 @@ function ThemeToggle({ dark, onToggle, t }) {
 // ── Home page ────────────────────────────────────────────────────────────────
 function Home() {
 	const navigate = useNavigate();
-	const [dark, setDark] = useState(true);
+	const [dark, setDark] = useTheme();
 	const [flash, setFlash] = useState(null);
 
 	const t = dark ? DARK : LIGHT;
@@ -245,16 +247,6 @@ function Home() {
 				transition: "opacity 0.35s ease",
 			}} />
 
-			{/* Glow */}
-			<div style={{
-				pointerEvents: "none",
-				position: "absolute",
-				width: 600, height: 600,
-				borderRadius: "50%",
-				background: `radial-gradient(circle, ${t.glowColor}22 0%, transparent 70%)`,
-				top: "50%", left: "50%",
-				transform: "translate(-50%, -60%)",
-			}} />
 
 			{/* Top bar */}
 			<div style={{
@@ -268,7 +260,7 @@ function Home() {
 			}}>
 				<span style={{
 					fontFamily: "'DM Mono', monospace",
-					fontSize: 13,
+					fontSize: "clamp(13px, 1.3vw, 16px)",
 					color: t.accent,
 					letterSpacing: "0.12em",
 				}}>
@@ -285,15 +277,15 @@ function Home() {
 				flexDirection: "column",
 				alignItems: "center",
 				width: "100%",
-				maxWidth: 560,
-				padding: "72px 24px 48px",
-				gap: 28,
+				maxWidth: 720,
+				padding: "clamp(72px, 10vh, 120px) clamp(24px, 4vw, 48px) clamp(48px, 6vh, 80px)",
+				gap: "clamp(28px, 3.5vh, 44px)",
 			}}>
 				{/* Hero text */}
 				<div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
 					<h1 style={{
 						fontFamily: "'Outfit', sans-serif",
-						fontSize: "clamp(44px, 8vw, 64px)",
+						fontSize: "clamp(48px, 8vw, 88px)",
 						fontWeight: 700,
 						letterSpacing: "-0.03em",
 						color: t.text,
@@ -301,17 +293,17 @@ function Home() {
 						textAlign: "center",
 						transition: "color 0.35s",
 					}}>
-						Nonogram
+						nono.gg
 					</h1>
 					<p style={{
 						fontFamily: "'DM Mono', monospace",
 						color: t.textDim,
 						letterSpacing: "0.04em",
-						fontSize: 13,
+						fontSize: "clamp(13px, 1.3vw, 17px)",
 						margin: 0,
 						transition: "color 0.35s",
 					}}>
-						solve pixel puzzles. alone or with friends.
+						solve nonograms. alone or with friends.
 					</p>
 				</div>
 
@@ -326,7 +318,7 @@ function Home() {
 						fontFamily: "'DM Mono', monospace",
 						color: t.textDim,
 						letterSpacing: "0.15em",
-						fontSize: 10,
+						fontSize: "clamp(10px, 1vw, 12px)",
 						textTransform: "uppercase",
 						margin: "0 0 4px 0",
 					}}>
@@ -335,14 +327,14 @@ function Home() {
 					<ModeCard
 						badge="01 / solo"
 						title="Single Player"
-						description="pick a puzzle. find the pattern. take your time."
+						description="challenge yourself."
 						t={t}
 						onClick={() => handleMode("single")}
 					/>
 					<ModeCard
 						badge="02 / versus"
 						title="Multiplayer"
-						description="up to 4 players. first to solve wins."
+						description="play online with friends. first to solve wins."
 						t={t}
 						onClick={() => handleMode("multi")}
 					/>
@@ -354,12 +346,15 @@ function Home() {
 					alignItems: "center",
 					gap: 20,
 					fontFamily: "'DM Mono', monospace",
-					fontSize: 11,
+					fontSize: "clamp(11px, 1.1vw, 14px)",
 					color: t.textDim,
 				}}>
-					<span>how to play</span>
-					<span style={{ color: t.border }}>·</span>
-					<span>puzzle archive</span>
+					<span
+						onClick={() => navigate("/how-to-play")}
+						style={{ cursor: "pointer", transition: "color 0.18s" }}
+						onMouseEnter={(e) => (e.currentTarget.style.color = t.accent)}
+						onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
+					>how to play</span>
 					<span style={{ color: t.border }}>·</span>
 					<span>settings</span>
 				</footer>

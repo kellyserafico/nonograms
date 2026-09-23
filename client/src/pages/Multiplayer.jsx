@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { DARK, LIGHT } from "../theme";
 import { colyseusClient } from "../ColyseusClient";
 import { setRoom } from "../roomStore";
+import { useTheme } from "../useTheme";
 
 // ── Shared pieces ─────────────────────────────────────────────────────────────
 
@@ -357,7 +358,7 @@ function ChooseView({ t, onChoose }) {
 export default function Multiplayer() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const [dark, setDark] = useState(true);
+	const [dark, setDark] = useTheme();
 	const [view, setView] = useState(location.state?.view || "choose");
 	const initialCode = location.state?.code || "";
 
