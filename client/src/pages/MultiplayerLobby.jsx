@@ -345,7 +345,7 @@ function MultiplayerLobby() {
 
 	useEffect(() => {
 		const room = getRoom();
-		if (!room) { navigate("/multiplayer"); return; }
+		if (!room) { navigate("/multiplayer", { state: { view: "join", code: roomCode } }); return; }
 		roomRef.current = room;
 
 		room.state.players.onAdd((_player, sessionId) => {
@@ -510,6 +510,19 @@ function MultiplayerLobby() {
 		navigate("/multiplayer");
 	};
 
+	const backToLobby = () => {
+		setPhase("waiting");
+		setPuzzle(null);
+		setLocalBoard(null);
+		setLocalSolved(false);
+		setIFinished(false);
+		setFinishedNames([]);
+		setOpponentStates({});
+		setOpponentSolvedAt({});
+		setRoundData(null);
+		setFinalLeaderboard([]);
+	};
+
 	const copyCode = () => {
 		navigator.clipboard.writeText(roomCode);
 		setCopied(true);
@@ -518,7 +531,7 @@ function MultiplayerLobby() {
 
 	// ── Render: game over ────────────────────────────────────────────────────
 	if (phase === "gameOver") {
-		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={leaveRoom} />;
+		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={backToLobby} />;
 	}
 
 	const t = dark ? DARK : LIGHT;

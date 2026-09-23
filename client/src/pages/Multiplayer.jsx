@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { DARK, LIGHT } from "../theme";
 import { colyseusClient } from "../ColyseusClient";
 import { setRoom } from "../roomStore";
@@ -157,9 +157,9 @@ function CreateLobby({ t, onBack, navigate }) {
 
 const CODE_LENGTH = 4;
 
-function JoinRoom({ t, dark, onBack, navigate }) {
+function JoinRoom({ t, dark, onBack, navigate, initialCode = "" }) {
 	const [name, setName] = useState("");
-	const [code, setCode] = useState("");
+	const [code, setCode] = useState(initialCode);
 	const [error, setError] = useState("");
 	const [joining, setJoining] = useState(false);
 	const inputRefs = useRef([]);
@@ -343,8 +343,10 @@ function ChooseView({ t, onChoose }) {
 
 export default function Multiplayer() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [dark, setDark] = useState(true);
-	const [view, setView] = useState("choose");
+	const [view, setView] = useState(location.state?.view || "choose");
+	const initialCode = location.state?.code || "";
 
 	const t = dark ? DARK : LIGHT;
 
@@ -393,7 +395,7 @@ export default function Multiplayer() {
 			<div className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
 				{view === "choose" && <ChooseView t={t} onChoose={setView} />}
 				{view === "create" && <CreateLobby t={t} onBack={() => setView("choose")} navigate={navigate} />}
-				{view === "join"   && <JoinRoom   t={t} dark={dark} onBack={() => setView("choose")} navigate={navigate} />}
+				{view === "join"   && <JoinRoom   t={t} dark={dark} onBack={() => setView("choose")} navigate={navigate} initialCode={initialCode} />}
 			</div>
 
 			<style>{`
