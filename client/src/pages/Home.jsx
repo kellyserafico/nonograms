@@ -342,7 +342,7 @@ function Home() {
 					<ModeCard
 						badge="02 / versus"
 						title="Multiplayer"
-						description="race or collaborate. share a room code. first to solve wins."
+						description="up to 4 players. first to solve wins."
 						t={t}
 						onClick={() => handleMode("multi")}
 					/>
