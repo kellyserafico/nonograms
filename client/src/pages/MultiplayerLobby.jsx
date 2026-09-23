@@ -878,7 +878,7 @@ function MultiplayerLobby() {
 
 					{/* Hints + clear */}
 					<div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 20 }}>
-						{[["click", "fill"], ["right click", "×"], ["drag", "paint"]].map(([k, v]) => (
+						{[["click", "fill"], ["right click", "×"]].map(([k, v]) => (
 							<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim }}>
 								<span style={{ color: t.textMuted }}>{k}</span> — {v}
 							</span>
