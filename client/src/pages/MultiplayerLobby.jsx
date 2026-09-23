@@ -391,17 +391,17 @@ function MultiplayerLobby() {
 
 	// ── Solve detection ─────────────────────────────────────────────────────
 	useEffect(() => {
-		if (!localBoard || !puzzleRef.current || localSolved || phase !== "playing") return;
-		const p = puzzleRef.current;
-		const solved = localBoard.every((row, ri) =>
-			row.every((cell, ci) => (cell === 1) === Boolean(p[ri][ci]))
-		);
+		if (!localBoard || localSolved || phase !== "playing") return;
+		if (!rowClues.length || !colClues.length) return;
+		const solved =
+			rowClues.every((_, ri) => isRowSat(localBoard, rowClues, ri)) &&
+			colClues.every((_, ci) => isColSat(localBoard, colClues, ci));
 		if (solved) {
 			setLocalSolved(true);
 			setIFinished(true);
 			roomRef.current?.send("player_finished", { time: seconds });
 		}
-	}, [localBoard]);
+	}, [localBoard, rowClues, colClues]);
 
 	// ── Board interaction ───────────────────────────────────────────────────
 	const handleCellDown = (e, ri, ci) => {
