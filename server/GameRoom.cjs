@@ -56,7 +56,7 @@ class GameRoom extends colyseus.Room {
 				time,
 			});
 
-			const totalPlayers = Object.keys(this.state.players).length;
+			const totalPlayers = Object.keys(this.roundWins).length;
 			const allDone = this.finishedPlayers.length >= totalPlayers;
 			const lastOneStanding = totalPlayers > 1 && this.finishedPlayers.length >= totalPlayers - 1;
 			if (allDone || lastOneStanding) {
@@ -108,11 +108,8 @@ class GameRoom extends colyseus.Room {
 
 		this.broadcastPlayerList();
 
-		if (
-			this.currentRound > 0 &&
-			Object.keys(this.state.players).length > 0 &&
-			this.finishedPlayers.length >= Object.keys(this.state.players).length
-		) {
+		const remaining = Object.keys(this.roundWins).length;
+		if (this.currentRound > 0 && remaining > 0 && this.finishedPlayers.length >= remaining) {
 			this.endRound();
 		}
 	}

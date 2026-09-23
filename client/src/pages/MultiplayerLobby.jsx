@@ -775,7 +775,7 @@ function MultiplayerLobby() {
 					<div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
 
 					{/* Solved overlay — shown while waiting for others */}
-					{localSolved && phase === "playing" && (
+					{localSolved && phase === "playing" && sortedPlayers.filter(n => n !== myName).some(n => !finishedNames.includes(n)) && (
 						<div style={{
 							position: "absolute", inset: 0, zIndex: 10,
 							background: dark ? "rgba(9,11,16,0.82)" : "rgba(240,242,236,0.82)",
