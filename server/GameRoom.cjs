@@ -18,6 +18,7 @@ class GameRoom extends colyseus.Room {
 		this.finishedPlayers = []; // per-round finishes
 		this.roundWins = {};       // sessionId -> number of round wins
 		this.roundEnded = false;   // guard against double endRound()
+		this.lobbySettings = { boardVisibility: false, firstTo: 1, boardSize: 10 };
 
 		this.onMessage("start_game", (client, msg) => {
 			if (client.sessionId !== this.hostId) return;
@@ -34,6 +35,14 @@ class GameRoom extends colyseus.Room {
 				round: this.currentRound,
 				puzzle,
 			});
+		});
+
+		this.onMessage("lobby_settings_update", (client, msg) => {
+			if (client.sessionId !== this.hostId) return;
+			if (msg?.boardVisibility !== undefined) this.lobbySettings.boardVisibility = !!msg.boardVisibility;
+			if (msg?.firstTo !== undefined) this.lobbySettings.firstTo = msg.firstTo;
+			if (msg?.boardSize !== undefined) this.lobbySettings.boardSize = msg.boardSize;
+			this.broadcast("lobby_settings", this.lobbySettings, { except: client });
 		});
 
 		this.onMessage("cell_update", (client, { row, col, color }) => {
@@ -89,6 +98,7 @@ class GameRoom extends colyseus.Room {
 
 		this.broadcastPlayerList();
 		client.send("role", { isHost: client.sessionId === this.hostId });
+		client.send("lobby_settings", this.lobbySettings);
 	}
 
 	onLeave(client) {

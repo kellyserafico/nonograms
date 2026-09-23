@@ -195,7 +195,7 @@ function RoundOverOverlay({ roundLeaderboard, winsLeaderboard, round, firstTo, i
 }
 
 // ─── Game Over screen ────────────────────────────────────────────────────────
-function GameOverScreen({ leaderboard, onLeave, onRematch }) {
+function GameOverScreen({ leaderboard, onLeave }) {
 	const winner = leaderboard[0];
 	return (
 		<div style={{
@@ -253,21 +253,12 @@ function GameOverScreen({ leaderboard, onLeave, onRematch }) {
 					))}
 				</div>
 
-				{/* Buttons */}
-				<div style={{ display: "flex", gap: 10, width: "100%" }}>
-					<button onClick={onLeave} style={{
-						flex: 1, fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
-						color: "#8b8fa8", background: "#1a1e2e", border: "1px solid #1e2436",
-						borderRadius: 6, padding: "10px 0", cursor: "pointer",
-					}}>leave</button>
-					{onRematch && (
-						<button onClick={onRematch} style={{
-							flex: 1, fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
-							color: "#090b10", background: "#6eb5ff", border: "none",
-							borderRadius: 6, padding: "10px 0", cursor: "pointer", fontWeight: 600,
-						}}>rematch →</button>
-					)}
-				</div>
+				{/* Button */}
+				<button onClick={onLeave} style={{
+					width: "100%", fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
+					color: "#8b8fa8", background: "#1a1e2e", border: "1px solid #1e2436",
+					borderRadius: 6, padding: "10px 0", cursor: "pointer",
+				}}>back to lobby</button>
 			</div>
 		</div>
 	);
@@ -287,6 +278,7 @@ function MultiplayerLobby() {
 	const [players, setPlayers] = useState([]);
 	const [copied, setCopied] = useState(false);
 	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10 });
+	const [guestSettings, setGuestSettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10 });
 
 	// Game state
 	const [phase, setPhase] = useState("waiting");
@@ -368,6 +360,10 @@ function MultiplayerLobby() {
 		room.onMessage("role", ({ isHost: h }) => {
 			setIsHost(h);
 			setIsHostState(h);
+		});
+
+		room.onMessage("lobby_settings", (s) => {
+			setGuestSettings(s);
 		});
 
 		room.onMessage("game_started", ({ settings: s, round, puzzle: p }) => {
@@ -457,7 +453,7 @@ function MultiplayerLobby() {
 		setLocalBoard((prev) => {
 			if (!prev) return prev;
 			const cur = prev[ri][ci];
-			const next = cur === 0 ? 1 : cur === 1 ? 2 : 1;
+			const next = cur === 1 ? 0 : 1; // toggle filled/empty; × cleared too
 			setLocalDragFill(next);
 			const nb = prev.map((r) => [...r]);
 			nb[ri][ci] = next;
@@ -498,6 +494,12 @@ function MultiplayerLobby() {
 		rightDragRef.current = false;
 	};
 
+	// Broadcast lobby settings changes to guests
+	useEffect(() => {
+		if (!isHost || !roomRef.current) return;
+		roomRef.current.send("lobby_settings_update", lobbySettings);
+	}, [lobbySettings, isHost]);
+
 	// ── Actions ─────────────────────────────────────────────────────────────
 	const startGame = () => roomRef.current?.send("start_game", lobbySettings);
 	const nextRound = () => roomRef.current?.send("next_round");
@@ -508,10 +510,6 @@ function MultiplayerLobby() {
 		navigate("/multiplayer");
 	};
 
-	const startRematch = () => {
-		roomRef.current?.send("start_game", settings);
-	};
-
 	const copyCode = () => {
 		navigator.clipboard.writeText(roomCode);
 		setCopied(true);
@@ -520,7 +518,7 @@ function MultiplayerLobby() {
 
 	// ── Render: game over ────────────────────────────────────────────────────
 	if (phase === "gameOver") {
-		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={leaveRoom} onRematch={isHost ? startRematch : null} />;
+		return <GameOverScreen leaderboard={finalLeaderboard} onLeave={leaveRoom} />;
 	}
 
 	const t = dark ? DARK : LIGHT;
@@ -606,48 +604,54 @@ function MultiplayerLobby() {
 							))}
 						</div>
 
-						{isHost && (
-							<div style={{ border: `1px solid ${t.border}`, borderRadius: 2, overflow: "hidden" }}>
-								<div style={{ padding: "8px 14px", background: t.card, borderBottom: `1px solid ${t.border}` }}>
-									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-										game settings
-									</span>
-								</div>
-								<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card }}>
-									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>board visibility</span>
-									<button
-										onClick={() => setLobbySettings((s) => ({ ...s, boardVisibility: !s.boardVisibility }))}
-										style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", padding: "4px 14px", borderRadius: 2, border: `1px solid ${lobbySettings.boardVisibility ? t.accent : t.border}`, background: lobbySettings.boardVisibility ? t.accent + "20" : "transparent", color: lobbySettings.boardVisibility ? t.accent : t.textDim, cursor: "pointer", letterSpacing: "0.08em", transition: "all 0.15s" }}
-									>
-										{lobbySettings.boardVisibility ? "on" : "off"}
-									</button>
-								</div>
-								<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
-									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>first to finish</span>
-									<div style={{ display: "flex", gap: 4 }}>
-										{[1, 2, 3, 4, 5].map((n) => (
-											<button key={n} onClick={() => setLobbySettings((s) => ({ ...s, firstTo: n }))}
-												style={{ width: 30, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.75rem", borderRadius: 2, border: `1px solid ${lobbySettings.firstTo === n ? t.accent : t.border}`, background: lobbySettings.firstTo === n ? t.accent + "20" : "transparent", color: lobbySettings.firstTo === n ? t.accent : t.textDim, cursor: "pointer", transition: "all 0.15s" }}
-											>
-												{n}
-											</button>
-										))}
+						{(() => {
+							const vs = isHost ? lobbySettings : guestSettings;
+							return (
+								<div style={{ border: `1px solid ${t.border}`, borderRadius: 2, overflow: "hidden" }}>
+									<div style={{ padding: "8px 14px", background: t.card, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+										<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+											game settings
+										</span>
+										{!isHost && <span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.55rem", color: t.textDim, letterSpacing: "0.08em" }}>host only</span>}
+									</div>
+									<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card }}>
+										<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>board visibility</span>
+										<button
+											onClick={isHost ? () => setLobbySettings((s) => ({ ...s, boardVisibility: !s.boardVisibility })) : undefined}
+											style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", padding: "4px 14px", borderRadius: 2, border: `1px solid ${vs.boardVisibility ? t.accent : t.border}`, background: vs.boardVisibility ? t.accent + "20" : "transparent", color: vs.boardVisibility ? t.accent : t.textDim, cursor: isHost ? "pointer" : "default", letterSpacing: "0.08em", transition: "all 0.15s", opacity: isHost ? 1 : 0.6 }}
+										>
+											{vs.boardVisibility ? "on" : "off"}
+										</button>
+									</div>
+									<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
+										<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>first to finish</span>
+										<div style={{ display: "flex", gap: 4 }}>
+											{[1, 2, 3, 4, 5].map((n) => (
+												<button key={n}
+													onClick={isHost ? () => setLobbySettings((s) => ({ ...s, firstTo: n })) : undefined}
+													style={{ width: 30, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.75rem", borderRadius: 2, border: `1px solid ${vs.firstTo === n ? t.accent : t.border}`, background: vs.firstTo === n ? t.accent + "20" : "transparent", color: vs.firstTo === n ? t.accent : t.textDim, cursor: isHost ? "pointer" : "default", transition: "all 0.15s", opacity: isHost ? 1 : 0.6 }}
+												>
+													{n}
+												</button>
+											))}
+										</div>
+									</div>
+									<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
+										<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>board size</span>
+										<div style={{ display: "flex", gap: 4 }}>
+											{[5, 10, 15, 20].map((n) => (
+												<button key={n}
+													onClick={isHost ? () => setLobbySettings((s) => ({ ...s, boardSize: n })) : undefined}
+													style={{ width: 34, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.7rem", borderRadius: 2, border: `1px solid ${vs.boardSize === n ? t.accent : t.border}`, background: vs.boardSize === n ? t.accent + "20" : "transparent", color: vs.boardSize === n ? t.accent : t.textDim, cursor: isHost ? "pointer" : "default", transition: "all 0.15s", opacity: isHost ? 1 : 0.6 }}
+												>
+													{n}×{n}
+												</button>
+											))}
+										</div>
 									</div>
 								</div>
-								<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
-									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>board size</span>
-									<div style={{ display: "flex", gap: 4 }}>
-										{[5, 10, 15, 20].map((n) => (
-											<button key={n} onClick={() => setLobbySettings((s) => ({ ...s, boardSize: n }))}
-												style={{ width: 34, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.7rem", borderRadius: 2, border: `1px solid ${lobbySettings.boardSize === n ? t.accent : t.border}`, background: lobbySettings.boardSize === n ? t.accent + "20" : "transparent", color: lobbySettings.boardSize === n ? t.accent : t.textDim, cursor: "pointer", transition: "all 0.15s" }}
-											>
-												{n}×{n}
-											</button>
-										))}
-									</div>
-								</div>
-							</div>
-						)}
+							);
+						})()}
 
 						{isHost ? (
 							<button onClick={startGame}

@@ -172,7 +172,7 @@ export default function SinglePlayer() {
 		}
 		if (e.button !== 0) return;
 		const current = board[ri][ci];
-		const next = current === 0 ? 1 : current === 1 ? 2 : 1; // × → green (not clear)
+		const next = current === 1 ? 0 : 1; // toggle filled/empty; × cleared too
 		setDragFill(next);
 		setBoard((prev) => {
 			const nb = prev.map((r) => [...r]);
