@@ -311,8 +311,9 @@ function MultiplayerLobby() {
 			setOpponentStates((prev) => {
 				const current = prev[playerName];
 				if (!current) return prev;
+				const val = color === "filled" ? 1 : color === "marked" ? 2 : 0;
 				const next = current.map((r, ri) =>
-					r.map((c, ci) => (ri === row && ci === col ? (color ? 1 : 0) : c))
+					r.map((c, ci) => (ri === row && ci === col ? val : c))
 				);
 				return { ...prev, [playerName]: next };
 			});
@@ -366,6 +367,7 @@ function MultiplayerLobby() {
 				if (cur === target) return prev;
 				const nb = prev.map((r) => [...r]);
 				nb[ri][ci] = target;
+				roomRef.current?.send("cell_update", { row: ri, col: ci, color: target === 2 ? "marked" : "" });
 				return nb;
 			});
 			return;
@@ -392,6 +394,7 @@ function MultiplayerLobby() {
 				if (!prev || prev[ri][ci] === target) return prev;
 				const nb = prev.map((r) => [...r]);
 				nb[ri][ci] = target;
+				roomRef.current?.send("cell_update", { row: ri, col: ci, color: target === 2 ? "marked" : "" });
 				return nb;
 			});
 			return;
