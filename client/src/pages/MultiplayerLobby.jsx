@@ -275,8 +275,9 @@ function MultiplayerLobby() {
 	const [isHost, setIsHostState] = useState(getIsHost());
 	const [players, setPlayers] = useState([]);
 	const [copied, setCopied] = useState(false);
-	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10 });
-	const [guestSettings, setGuestSettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10 });
+	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10, hints: false });
+	const [guestSettings, setGuestSettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10, hints: false });
+	const [localHints, setLocalHints] = useState(false);
 
 	// Game state
 	const [phase, setPhase] = useState("waiting");
@@ -327,6 +328,7 @@ function MultiplayerLobby() {
 		puzzleRef.current = p;
 		setPuzzle(p);
 		setLocalBoard(Array.from({ length: size }, () => Array(size).fill(0)));
+		setLocalHints(false);
 
 		const { rowClues: rc, colClues: cc } = computeClues(p);
 		setRowClues(rc);
@@ -673,6 +675,15 @@ function MultiplayerLobby() {
 											))}
 										</div>
 									</div>
+									<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
+										<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>allow hints</span>
+										<button
+											onClick={isHost ? () => setLobbySettings((s) => ({ ...s, hints: !s.hints })) : undefined}
+											style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", padding: "4px 14px", borderRadius: 2, border: `1px solid ${vs.hints ? t.accent : t.border}`, background: vs.hints ? t.accent + "20" : "transparent", color: vs.hints ? t.accent : t.textDim, cursor: isHost ? "pointer" : "default", letterSpacing: "0.08em", transition: "all 0.15s", opacity: isHost ? 1 : 0.6 }}
+										>
+											{vs.hints ? "on" : "off"}
+										</button>
+									</div>
 								</div>
 							);
 						})()}
@@ -750,9 +761,19 @@ function MultiplayerLobby() {
 						</span>
 					</div>
 
-					<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, letterSpacing: "0.08em" }}>
-						{inGameVisible ? "boards on" : "boards off"}
-					</span>
+					<div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+						{settings.hints && (
+							<button
+								onClick={() => setLocalHints((h) => !h)}
+								style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", padding: "3px 10px", borderRadius: 2, border: `1px solid ${localHints ? t.accent : t.border}`, background: localHints ? t.accent + "20" : "transparent", color: localHints ? t.accent : t.textDim, cursor: "pointer", letterSpacing: "0.08em", transition: "all 0.15s" }}
+							>
+								hints
+							</button>
+						)}
+						<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, letterSpacing: "0.08em" }}>
+							{inGameVisible ? "boards on" : "boards off"}
+						</span>
+					</div>
 				</div>
 
 				{/* Score cards */}
@@ -823,7 +844,7 @@ function MultiplayerLobby() {
 							{colClues.map((clues, ci) => (
 								<div key={ci} style={{ width: CELL, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: CLUE_W * maxColLen, paddingBottom: 4, gap: 1 }}>
 									{clues.map((n, k) => (
-										<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: board.length && isColSat(board, colClues, ci) ? myColor : t.textDim, lineHeight: 1, transition: "color 0.2s" }}>
+										<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: localHints && board.length && isColSat(board, colClues, ci) ? myColor : t.textDim, lineHeight: 1, transition: "color 0.2s" }}>
 											{n}
 										</span>
 									))}
@@ -837,7 +858,7 @@ function MultiplayerLobby() {
 								{/* Row clues */}
 								<div style={{ width: CLUE_W * maxRowLen, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, gap: 4, height: CELL }}>
 									{rowClues[ri]?.map((n, k) => (
-										<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: isRowSat(board, rowClues, ri) ? myColor : t.textDim, minWidth: CLUE_W - 4, textAlign: "right", transition: "color 0.2s" }}>
+										<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: localHints && isRowSat(board, rowClues, ri) ? myColor : t.textDim, minWidth: CLUE_W - 4, textAlign: "right", transition: "color 0.2s" }}>
 											{n}
 										</span>
 									))}

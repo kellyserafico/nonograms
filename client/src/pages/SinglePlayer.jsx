@@ -70,6 +70,7 @@ export default function SinglePlayer() {
 	const [seconds, setSeconds] = useState(0);
 	const [running, setRunning] = useState(true);
 	const [solved, setSolved] = useState(false);
+	const [hints, setHints] = useState(false);
 	const [dragFill, setDragFill] = useState(null);
 	const intervalRef = useRef(null);
 	const rightDragRef = useRef(false);   // true while right button is held
@@ -273,7 +274,7 @@ export default function SinglePlayer() {
 									{clues.map((n, i) => (
 										<span key={i} style={{
 											fontFamily: "DM Mono, monospace", fontSize: FONT,
-											color: sat ? t.accent : n === 0 ? t.textDim : t.text,
+											color: hints && sat ? t.accent : n === 0 ? t.textDim : t.text,
 											lineHeight: 1, transition: "color 0.2s",
 										}}>
 											{n}
@@ -299,7 +300,7 @@ export default function SinglePlayer() {
 									{puzzle.rowClues[ri].map((n, i) => (
 										<span key={i} style={{
 											fontFamily: "DM Mono, monospace", fontSize: FONT,
-											color: sat ? t.accent : n === 0 ? t.textDim : t.text,
+											color: hints && sat ? t.accent : n === 0 ? t.textDim : t.text,
 											transition: "color 0.2s",
 											minWidth: CLUE_NUM_W, textAlign: "right",
 										}}>
@@ -395,6 +396,19 @@ export default function SinglePlayer() {
 						onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
 					>
 						clear
+					</button>
+					<button
+						onClick={() => setHints((h) => !h)}
+						style={{
+							fontFamily: "DM Mono, monospace", fontSize: "0.88rem",
+							padding: "10px 28px", borderRadius: 2,
+							border: `1px solid ${hints ? t.accent : t.border}`,
+							background: hints ? t.accent + "20" : "transparent",
+							color: hints ? t.accent : t.textDim,
+							cursor: "pointer", letterSpacing: "0.08em", transition: "all 0.15s",
+						}}
+					>
+						hints {hints ? "on" : "off"}
 					</button>
 				</div>
 
