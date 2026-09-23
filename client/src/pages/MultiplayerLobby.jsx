@@ -112,53 +112,77 @@ function MiniBoard({ board, visible, solved, solvedTime, t, playerColor, size })
 	);
 }
 
-// ─── Leaderboard overlay ────────────────────────────────────────────────────
-function LeaderboardOverlay({ roundLeaderboard, overallLeaderboard, round, totalRounds, isLastRound, isHost, onNext }) {
+// ─── Round over overlay ───────────────────────────────────────────────────────
+function RoundOverOverlay({ roundLeaderboard, winsLeaderboard, round, firstTo, isHost, onNext }) {
+	const [countdown, setCountdown] = React.useState(5);
+	const winner = roundLeaderboard[0];
+
+	React.useEffect(() => {
+		if (countdown <= 0) { if (isHost) onNext(); return; }
+		const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
+		return () => clearTimeout(id);
+	}, [countdown, isHost, onNext]);
+
 	return (
-		<div className="fixed inset-0 flex items-center justify-center z-50"
-			style={{ background: "rgba(200,160,180,0.3)", backdropFilter: "blur(6px)" }}>
-			<div className="rounded-3xl p-8 w-96 shadow-xl flex flex-col gap-4"
-				style={{ background: "#fff0f6", border: "2px solid #f7c5dc" }}>
-				<h2 className="text-2xl font-extrabold text-center" style={{ color: "#c084a0" }}>
-					🏆 Round {round} Results
-				</h2>
-				<div>
-					<h3 className="text-sm font-bold mb-2" style={{ color: "#b07090" }}>This Round</h3>
-					<ul className="space-y-1">
-						{roundLeaderboard.map((entry, i) => (
-							<li key={i} className="flex justify-between items-center px-3 py-1 rounded-full"
-								style={{ background: i === 0 ? "#fde8f0" : "rgba(255,255,255,0.6)" }}>
-								<span className="font-semibold" style={{ color: "#9b5b7a" }}>
-									{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`} {entry.name}
-									{entry.dnf && <span className="text-xs ml-1" style={{ color: "#c4a8bc" }}>(DNF)</span>}
-								</span>
-								<span className="text-sm font-mono" style={{ color: "#c084a0" }}>{fmtTime(entry.time)}</span>
-							</li>
-						))}
-					</ul>
+		<div style={{
+			position: "fixed", inset: 0, zIndex: 50,
+			background: "rgba(9,11,16,0.88)", backdropFilter: "blur(6px)",
+			display: "flex", alignItems: "center", justifyContent: "center",
+		}}>
+			<div style={{
+				background: "#0f1320", border: "1px solid #1e2436",
+				borderRadius: 12, padding: "32px 36px", width: 320,
+				display: "flex", flexDirection: "column", gap: 0,
+			}}>
+				<div style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: "#565f7a", letterSpacing: "0.15em", marginBottom: 16, textAlign: "center" }}>
+					— ROUND {round} —
 				</div>
-				{totalRounds > 1 && (
-					<div>
-						<h3 className="text-sm font-bold mb-2" style={{ color: "#b07090" }}>Overall Standings</h3>
-						<ul className="space-y-1">
-							{overallLeaderboard.map((entry, i) => (
-								<li key={i} className="flex justify-between items-center px-3 py-1 rounded-full"
-									style={{ background: i === 0 ? "#e8fdf0" : "rgba(255,255,255,0.6)" }}>
-									<span className="font-semibold" style={{ color: "#3a6a5b" }}>#{entry.rank} {entry.name}</span>
-									<span className="text-xs" style={{ color: "#6aac8b" }}>{entry.points} pts</span>
-								</li>
-							))}
-						</ul>
-						<p className="text-xs mt-1 text-center" style={{ color: "#c4a8bc" }}>lower points = better rank</p>
+
+				{winner && (
+					<>
+						<div style={{ fontFamily: "Outfit, sans-serif", fontWeight: 700, fontSize: "1.6rem", color: "#e8eaf0", textAlign: "center", marginBottom: 4 }}>
+							{winner.name}
+						</div>
+						<div style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: "#565f7a", textAlign: "center", marginBottom: 24 }}>
+							{winner.dnf ? "no one finished" : `finished first · ${fmtTime(winner.time)}`}
+						</div>
+					</>
+				)}
+
+				{/* Round results */}
+				<div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+					{roundLeaderboard.map((entry, i) => (
+						<div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: "#565f7a", width: 20, textAlign: "right" }}>{entry.rank}.</span>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: entry.dnf ? "#565f7a" : "#c8cad6", flex: 1 }}>
+								{entry.name}{entry.dnf && <span style={{ fontSize: "0.6rem", color: "#565f7a", marginLeft: 6 }}>dnf</span>}
+							</span>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: "#565f7a" }}>{fmtTime(entry.time)}</span>
+						</div>
+					))}
+				</div>
+
+				{/* Wins scoreboard */}
+				{winsLeaderboard && (
+					<div style={{ borderTop: "1px solid #1e2436", paddingTop: 14, marginBottom: 20 }}>
+						<div style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: "#565f7a", letterSpacing: "0.12em", marginBottom: 10 }}>
+							WINS (first to {firstTo})
+						</div>
+						{winsLeaderboard.map((entry, i) => (
+							<div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+								<span style={{ width: 6, height: 6, borderRadius: "50%", background: PLAYER_COLORS[i] || "#565f7a", flexShrink: 0 }} />
+								<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: "#c8cad6", flex: 1 }}>{entry.name}</span>
+								<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.75rem", color: PLAYER_COLORS[i] || "#565f7a", fontWeight: 600 }}>
+									{entry.wins}/{firstTo}
+								</span>
+							</div>
+						))}
 					</div>
 				)}
-				{isHost && (
-					<button onClick={onNext} className="mt-2 font-bold rounded-full py-2 px-8 shadow-sm transition-transform hover:scale-105"
-						style={{ background: isLastRound ? "#f7c5dc" : "#c5dff7", color: isLastRound ? "#9b5b7a" : "#3a6a9b" }}>
-						{isLastRound ? "🎉 End Game" : `▶ Start Round ${round + 1}`}
-					</button>
-				)}
-				{!isHost && <p className="text-center text-sm animate-pulse" style={{ color: "#c4a8bc" }}>Waiting for host to continue…</p>}
+
+				<div style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: "#565f7a", textAlign: "center" }}>
+					next round in {countdown}s
+				</div>
 			</div>
 		</div>
 	);
@@ -218,7 +242,7 @@ function GameOverScreen({ leaderboard, onLeave, onRematch }) {
 							<span style={{
 								fontFamily: "DM Mono, monospace", fontSize: "0.75rem",
 								color: PLAYER_COLORS[i] || "#565f7a", fontWeight: 600,
-							}}>{entry.points}</span>
+							}}>{entry.wins ?? entry.points}</span>
 						</div>
 					))}
 				</div>
@@ -355,6 +379,7 @@ function MultiplayerLobby() {
 		room.onMessage("round_over", (data) => {
 			setRoundData(data);
 			setPhase("roundOver");
+			setLocalSolved(false);
 		});
 
 		room.onMessage("player_cell_update", ({ playerName, row, col, color }) => {
@@ -865,7 +890,7 @@ function MultiplayerLobby() {
 
 			{/* Round over overlay */}
 			{phase === "roundOver" && roundData && (
-				<LeaderboardOverlay {...roundData} isHost={isHost} onNext={nextRound} />
+				<RoundOverOverlay {...roundData} isHost={isHost} onNext={nextRound} />
 			)}
 		</div>
 	);

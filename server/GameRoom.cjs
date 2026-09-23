@@ -8,25 +8,24 @@ class GameRoom extends colyseus.Room {
 		this.settings = {
 			maxPlayers: Math.min(Math.max(options.maxPlayers || 4, 1), 10),
 			boardVisibility: options.boardVisibility === true,
-			rounds: Math.min(Math.max(options.rounds || 1, 1), 10),
 			boardSize: Math.min(Math.max(options.boardSize || 10, 5), 20),
-			firstTo: null,
+			firstTo: 1, // round wins needed to win the match
 		};
 		this.maxClients = this.settings.maxPlayers;
 
 		this.hostId = null;
 		this.currentRound = 0;
 		this.finishedPlayers = []; // per-round finishes
-		this.cumulativeScores = {}; // sessionId -> total rank points (lower = better)
+		this.roundWins = {};       // sessionId -> number of round wins
 
 		this.onMessage("start_game", (client, msg) => {
 			if (client.sessionId !== this.hostId) return;
 			if (msg?.boardVisibility !== undefined) this.settings.boardVisibility = !!msg.boardVisibility;
-			if (msg?.firstTo !== undefined) this.settings.firstTo = Math.min(Math.max(msg.firstTo, 1), this.maxClients);
-			if (msg?.boardSize !== undefined) this.settings.boardSize = Math.min(Math.max(msg.boardSize, 5), 20);
+			if (msg?.firstTo !== undefined) this.settings.firstTo = Math.min(Math.max(parseInt(msg.firstTo) || 1, 1), 10);
+			if (msg?.boardSize !== undefined) this.settings.boardSize = Math.min(Math.max(parseInt(msg.boardSize) || 10, 5), 20);
 			this.currentRound = 1;
 			this.finishedPlayers = [];
-			Object.keys(this.cumulativeScores).forEach((id) => { this.cumulativeScores[id] = 0; });
+			Object.keys(this.roundWins).forEach((id) => { this.roundWins[id] = 0; });
 			const puzzle = this.generatePuzzle(this.settings.boardSize);
 			this.broadcast("game_started", {
 				settings: this.settings,
@@ -56,25 +55,19 @@ class GameRoom extends colyseus.Room {
 			});
 
 			const totalPlayers = Object.keys(this.state.players).length;
-			const firstToThreshold = this.settings.firstTo
-				? Math.min(this.settings.firstTo, totalPlayers)
-				: totalPlayers;
+			const allDone = this.finishedPlayers.length >= totalPlayers;
 			const lastOneStanding = totalPlayers > 1 && this.finishedPlayers.length >= totalPlayers - 1;
-			if (this.finishedPlayers.length >= firstToThreshold || lastOneStanding) {
+			if (allDone || lastOneStanding) {
 				this.endRound();
 			}
 		});
 
 		this.onMessage("next_round", (client) => {
 			if (client.sessionId !== this.hostId) return;
-			if (this.currentRound >= this.settings.rounds) {
-				this.broadcast("game_over", { leaderboard: this.buildLeaderboard() });
-			} else {
-				this.currentRound++;
-				this.finishedPlayers = [];
-				const puzzle = this.generatePuzzle(this.settings.boardSize);
-				this.broadcast("round_started", { round: this.currentRound, puzzle });
-			}
+			this.currentRound++;
+			this.finishedPlayers = [];
+			const puzzle = this.generatePuzzle(this.settings.boardSize);
+			this.broadcast("round_started", { round: this.currentRound, puzzle });
 		});
 	}
 
@@ -89,7 +82,7 @@ class GameRoom extends colyseus.Room {
 			this.hostId = client.sessionId;
 		}
 
-		this.cumulativeScores[client.sessionId] = 0;
+		this.roundWins[client.sessionId] = 0;
 
 		this.broadcastPlayerList();
 		client.send("role", { isHost: client.sessionId === this.hostId });
@@ -99,7 +92,7 @@ class GameRoom extends colyseus.Room {
 		if (!this.state.players[client.sessionId]) return;
 
 		delete this.state.players[client.sessionId];
-		delete this.cumulativeScores[client.sessionId];
+		delete this.roundWins[client.sessionId];
 
 		if (client.sessionId === this.hostId) {
 			const remaining = Object.keys(this.state.players);
@@ -112,7 +105,6 @@ class GameRoom extends colyseus.Room {
 
 		this.broadcastPlayerList();
 
-		// End round early if all remaining players have finished
 		if (
 			this.currentRound > 0 &&
 			Object.keys(this.state.players).length > 0 &&
@@ -123,20 +115,27 @@ class GameRoom extends colyseus.Room {
 	}
 
 	endRound() {
-		// Accumulate rank points (1st = 1pt, 2nd = 2pt, lower is better)
-		this.finishedPlayers.forEach((p, i) => {
-			if (this.cumulativeScores[p.sessionId] !== undefined) {
-				this.cumulativeScores[p.sessionId] += i + 1;
-			}
-		});
+		// Award a win to the round winner (first to finish)
+		const roundWinner = this.finishedPlayers[0];
+		if (roundWinner && this.roundWins[roundWinner.sessionId] !== undefined) {
+			this.roundWins[roundWinner.sessionId]++;
+		}
 
-		this.broadcast("round_over", {
-			roundLeaderboard: this.buildRoundLeaderboard(),
-			overallLeaderboard: this.buildOverallLeaderboard(),
-			round: this.currentRound,
-			totalRounds: this.settings.rounds,
-			isLastRound: this.currentRound >= this.settings.rounds,
-		});
+		const roundLeaderboard = this.buildRoundLeaderboard();
+		const wins = this.buildWinsLeaderboard();
+
+		// Check if someone has reached firstTo wins
+		const matchWinner = wins.find((e) => e.wins >= this.settings.firstTo);
+		if (matchWinner) {
+			this.broadcast("game_over", { leaderboard: wins });
+		} else {
+			this.broadcast("round_over", {
+				roundLeaderboard,
+				winsLeaderboard: wins,
+				round: this.currentRound,
+				firstTo: this.settings.firstTo,
+			});
+		}
 	}
 
 	buildRoundLeaderboard() {
@@ -160,18 +159,14 @@ class GameRoom extends colyseus.Room {
 		return [...finished, ...dnf];
 	}
 
-	buildOverallLeaderboard() {
-		return Object.entries(this.cumulativeScores)
-			.map(([sessionId, points]) => ({
+	buildWinsLeaderboard() {
+		return Object.entries(this.roundWins)
+			.map(([sessionId, wins]) => ({
 				name: this.state.players[sessionId]?.name || "?",
-				points,
+				wins,
 			}))
-			.sort((a, b) => a.points - b.points)
+			.sort((a, b) => b.wins - a.wins)
 			.map((entry, i) => ({ ...entry, rank: i + 1 }));
-	}
-
-	buildLeaderboard() {
-		return this.buildOverallLeaderboard();
 	}
 
 	generatePuzzle(size) {
