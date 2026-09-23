@@ -256,7 +256,7 @@ function MultiplayerLobby() {
 	const [isHost, setIsHostState] = useState(getIsHost());
 	const [players, setPlayers] = useState([]);
 	const [copied, setCopied] = useState(false);
-	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1 });
+	const [lobbySettings, setLobbySettings] = useState({ boardVisibility: false, firstTo: 1, boardSize: 10 });
 
 	// Game state
 	const [phase, setPhase] = useState("waiting");
@@ -597,6 +597,18 @@ function MultiplayerLobby() {
 												style={{ width: 30, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.75rem", borderRadius: 2, border: `1px solid ${lobbySettings.firstTo === n ? t.accent : t.border}`, background: lobbySettings.firstTo === n ? t.accent + "20" : "transparent", color: lobbySettings.firstTo === n ? t.accent : t.textDim, cursor: "pointer", transition: "all 0.15s" }}
 											>
 												{n}
+											</button>
+										))}
+									</div>
+								</div>
+								<div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.card, borderTop: `1px solid ${t.border}` }}>
+									<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: t.text }}>board size</span>
+									<div style={{ display: "flex", gap: 4 }}>
+										{[5, 10, 15, 20].map((n) => (
+											<button key={n} onClick={() => setLobbySettings((s) => ({ ...s, boardSize: n }))}
+												style={{ width: 34, height: 30, fontFamily: "DM Mono, monospace", fontSize: "0.7rem", borderRadius: 2, border: `1px solid ${lobbySettings.boardSize === n ? t.accent : t.border}`, background: lobbySettings.boardSize === n ? t.accent + "20" : "transparent", color: lobbySettings.boardSize === n ? t.accent : t.textDim, cursor: "pointer", transition: "all 0.15s" }}
+											>
+												{n}×{n}
 											</button>
 										))}
 									</div>

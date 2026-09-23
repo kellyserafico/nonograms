@@ -23,6 +23,7 @@ class GameRoom extends colyseus.Room {
 			if (client.sessionId !== this.hostId) return;
 			if (msg?.boardVisibility !== undefined) this.settings.boardVisibility = !!msg.boardVisibility;
 			if (msg?.firstTo !== undefined) this.settings.firstTo = Math.min(Math.max(msg.firstTo, 1), this.maxClients);
+			if (msg?.boardSize !== undefined) this.settings.boardSize = Math.min(Math.max(msg.boardSize, 5), 20);
 			this.currentRound = 1;
 			this.finishedPlayers = [];
 			Object.keys(this.cumulativeScores).forEach((id) => { this.cumulativeScores[id] = 0; });
