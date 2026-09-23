@@ -17,6 +17,7 @@ class GameRoom extends colyseus.Room {
 		this.currentRound = 0;
 		this.finishedPlayers = []; // per-round finishes
 		this.roundWins = {};       // sessionId -> number of round wins
+		this.roundEnded = false;   // guard against double endRound()
 
 		this.onMessage("start_game", (client, msg) => {
 			if (client.sessionId !== this.hostId) return;
@@ -25,6 +26,7 @@ class GameRoom extends colyseus.Room {
 			if (msg?.boardSize !== undefined) this.settings.boardSize = Math.min(Math.max(parseInt(msg.boardSize) || 10, 5), 20);
 			this.currentRound = 1;
 			this.finishedPlayers = [];
+			this.roundEnded = false;
 			Object.keys(this.roundWins).forEach((id) => { this.roundWins[id] = 0; });
 			const puzzle = this.generatePuzzle(this.settings.boardSize);
 			this.broadcast("game_started", {
@@ -66,6 +68,7 @@ class GameRoom extends colyseus.Room {
 			if (client.sessionId !== this.hostId) return;
 			this.currentRound++;
 			this.finishedPlayers = [];
+			this.roundEnded = false;
 			const puzzle = this.generatePuzzle(this.settings.boardSize);
 			this.broadcast("round_started", { round: this.currentRound, puzzle });
 		});
@@ -115,6 +118,9 @@ class GameRoom extends colyseus.Room {
 	}
 
 	endRound() {
+		if (this.roundEnded) return;
+		this.roundEnded = true;
+
 		// Award a win to the round winner (first to finish)
 		const roundWinner = this.finishedPlayers[0];
 		if (roundWinner && this.roundWins[roundWinner.sessionId] !== undefined) {
