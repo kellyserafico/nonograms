@@ -116,12 +116,18 @@ function MiniBoard({ board, visible, solved, solvedTime, t, playerColor, size })
 function RoundOverOverlay({ roundLeaderboard, winsLeaderboard, round, firstTo, isHost, onNext }) {
 	const [countdown, setCountdown] = React.useState(5);
 	const winner = roundLeaderboard[0];
+	const firedRef = React.useRef(false);
+	const onNextRef = React.useRef(onNext);
+	React.useEffect(() => { onNextRef.current = onNext; });
 
 	React.useEffect(() => {
-		if (countdown <= 0) { if (isHost) onNext(); return; }
+		if (countdown <= 0) {
+			if (isHost && !firedRef.current) { firedRef.current = true; onNextRef.current(); }
+			return;
+		}
 		const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
 		return () => clearTimeout(id);
-	}, [countdown, isHost, onNext]);
+	}, [countdown, isHost]);
 
 	return (
 		<div style={{
@@ -467,6 +473,8 @@ function MultiplayerLobby() {
 			const target = rightDragMode.current;
 			setLocalBoard((prev) => {
 				if (!prev || prev[ri][ci] === target) return prev;
+				// never overwrite a filled cell during a mark-drag
+				if (target === 2 && prev[ri][ci] === 1) return prev;
 				const nb = prev.map((r) => [...r]);
 				nb[ri][ci] = target;
 				roomRef.current?.send("cell_update", { row: ri, col: ci, color: target === 2 ? "marked" : "" });
