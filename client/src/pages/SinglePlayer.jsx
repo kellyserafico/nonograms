@@ -27,52 +27,11 @@ function computeClues(solution) {
 	return { rowClues, colClues };
 }
 
-const PUZZLES = {
-	5: [
-		[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-		[[0,0,1,0,0],[0,1,1,1,0],[1,1,1,1,1],[0,1,1,1,0],[0,0,1,0,0]],
-		[[1,1,0,1,1],[1,1,0,1,1],[0,0,0,0,0],[1,0,0,0,1],[1,0,0,0,1]],
-	].map((s) => ({ solution: s, ...computeClues(s) })),
-	10: (() => {
-		const s = [
-			[0,0,1,1,1,1,1,1,0,0],
-			[0,1,1,0,0,0,0,1,1,0],
-			[1,1,0,1,0,0,1,0,1,1],
-			[1,0,0,0,0,0,0,0,0,1],
-			[1,0,1,0,0,0,0,1,0,1],
-			[1,0,1,0,0,0,0,1,0,1],
-			[1,0,0,0,0,0,0,0,0,1],
-			[1,1,0,1,0,0,1,0,1,1],
-			[0,1,1,0,0,0,0,1,1,0],
-			[0,0,1,1,1,1,1,1,0,0],
-		];
-		return [{ solution: s, ...computeClues(s) }];
-	})(),
-	15: (() => {
-		const s = Array.from({ length: 15 }, (_, r) =>
-			Array.from({ length: 15 }, (_, c) => {
-				const dr = r - 7, dc = c - 7;
-				if (dr * dr + dc * dc <= 36) return 1;
-				if (Math.abs(dr) <= 1 && Math.abs(dc) <= 6) return 1;
-				if (Math.abs(dr) <= 6 && Math.abs(dc) <= 1) return 1;
-				return 0;
-			})
-		);
-		return [{ solution: s, ...computeClues(s) }];
-	})(),
-};
-
-function randomPuzzle(size) {
+function getPuzzle(size) {
 	const solution = Array.from({ length: size }, () =>
 		Array.from({ length: size }, () => (Math.random() < 0.55 ? 1 : 0))
 	);
 	return { solution, ...computeClues(solution) };
-}
-
-function getPuzzle(size) {
-	const pool = PUZZLES[size];
-	if (pool) return pool[Math.floor(Math.random() * pool.length)];
-	return randomPuzzle(size);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
