@@ -165,10 +165,23 @@ function JoinRoom({ t, dark, onBack, navigate, initialCode = "" }) {
 	const inputRefs = useRef([]);
 
 	const handleCodeKey = (i, e) => {
-		if (e.key === "Backspace" && !code[i] && i > 0) {
-			inputRefs.current[i - 1]?.focus();
-			setCode((c) => c.slice(0, i - 1));
+		if (e.key === "Backspace") {
+			e.preventDefault();
+			if (code[i]) {
+				const arr = code.padEnd(CODE_LENGTH, " ").split("");
+				arr[i] = " ";
+				setCode(arr.join("").trimEnd());
+				setError("");
+			} else if (i > 0) {
+				inputRefs.current[i - 1]?.focus();
+				const arr = code.padEnd(CODE_LENGTH, " ").split("");
+				arr[i - 1] = " ";
+				setCode(arr.join("").trimEnd());
+				setError("");
+			}
 		}
+		if (e.key === "ArrowLeft" && i > 0) inputRefs.current[i - 1]?.focus();
+		if (e.key === "ArrowRight" && i < CODE_LENGTH - 1) inputRefs.current[i + 1]?.focus();
 	};
 
 	const handleCodeInput = (i, val) => {
