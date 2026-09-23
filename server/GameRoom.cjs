@@ -56,10 +56,11 @@ class GameRoom extends colyseus.Room {
 			});
 
 			const totalPlayers = Object.keys(this.state.players).length;
-			const threshold = this.settings.firstTo
+			const firstToThreshold = this.settings.firstTo
 				? Math.min(this.settings.firstTo, totalPlayers)
 				: totalPlayers;
-			if (this.finishedPlayers.length >= threshold) {
+			const lastOneStanding = totalPlayers > 1 && this.finishedPlayers.length >= totalPlayers - 1;
+			if (this.finishedPlayers.length >= firstToThreshold || lastOneStanding) {
 				this.endRound();
 			}
 		});

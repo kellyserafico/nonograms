@@ -739,7 +739,24 @@ function MultiplayerLobby() {
 					</div>
 
 					{/* Nonogram grid */}
-					<div style={{ display: "flex", flexDirection: "column" }}>
+					<div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
+
+					{/* Solved overlay — shown while waiting for others */}
+					{localSolved && phase === "playing" && (
+						<div style={{
+							position: "absolute", inset: 0, zIndex: 10,
+							background: dark ? "rgba(9,11,16,0.82)" : "rgba(240,242,236,0.82)",
+							backdropFilter: "blur(4px)",
+							display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
+						}}>
+							<svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+								<circle cx="12" cy="12" r="10" stroke={myColor} strokeWidth="1.5" />
+								<path d="M7 12.5l3.5 3.5 6.5-7" stroke={myColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.8rem", color: myColor, letterSpacing: "0.12em" }}>board complete</span>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: t.textDim, letterSpacing: "0.08em" }}>waiting for others...</span>
+						</div>
+					)}
 						{/* Col clues */}
 						<div style={{ display: "flex", marginLeft: CLUE_W * maxRowLen }}>
 							{colClues.map((clues, ci) => (
