@@ -155,14 +155,12 @@ function RoundOverOverlay({ roundLeaderboard, winsLeaderboard, round, firstTo, i
 					</>
 				)}
 
-				{/* Round results */}
+				{/* Round results — finished players only */}
 				<div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-					{roundLeaderboard.map((entry, i) => (
+					{roundLeaderboard.filter((e) => !e.dnf).map((entry, i) => (
 						<div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
 							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.65rem", color: "#565f7a", width: 20, textAlign: "right" }}>{entry.rank}.</span>
-							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: entry.dnf ? "#565f7a" : "#c8cad6", flex: 1 }}>
-								{entry.name}{entry.dnf && <span style={{ fontSize: "0.6rem", color: "#565f7a", marginLeft: 6 }}>dnf</span>}
-							</span>
+							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.78rem", color: "#c8cad6", flex: 1 }}>{entry.name}</span>
 							<span style={{ fontFamily: "DM Mono, monospace", fontSize: "0.7rem", color: "#565f7a" }}>{fmtTime(entry.time)}</span>
 						</div>
 					))}
@@ -503,6 +501,19 @@ function MultiplayerLobby() {
 	// ── Actions ─────────────────────────────────────────────────────────────
 	const startGame = () => roomRef.current?.send("start_game", lobbySettings);
 	const nextRound = () => roomRef.current?.send("next_round");
+
+	const clearBoard = () => {
+		if (localSolved) return;
+		const size = boardSizeRef.current;
+		const blank = Array.from({ length: size }, () => Array(size).fill(0));
+		setLocalBoard(blank);
+		// broadcast all cells cleared
+		for (let ri = 0; ri < size; ri++) {
+			for (let ci = 0; ci < size; ci++) {
+				roomRef.current?.send("cell_update", { row: ri, col: ci, color: "" });
+			}
+		}
+	};
 
 	const leaveRoom = () => {
 		roomRef.current?.leave();
@@ -865,13 +876,23 @@ function MultiplayerLobby() {
 						))}
 					</div>
 
-					{/* Hints */}
-					<div style={{ marginTop: 14, display: "flex", gap: 20 }}>
+					{/* Hints + clear */}
+					<div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 20 }}>
 						{[["click", "fill"], ["right click", "×"], ["drag", "paint"]].map(([k, v]) => (
 							<span key={k} style={{ fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim }}>
 								<span style={{ color: t.textMuted }}>{k}</span> — {v}
 							</span>
 						))}
+						{!localSolved && (
+							<button
+								onClick={clearBoard}
+								style={{ marginLeft: "auto", fontFamily: "DM Mono, monospace", fontSize: "0.6rem", color: t.textDim, background: "none", border: `1px solid ${t.border}`, borderRadius: 2, padding: "3px 10px", cursor: "pointer", letterSpacing: "0.06em" }}
+								onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff6e6e80"; e.currentTarget.style.color = "#ff8080"; }}
+								onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+							>
+								clear
+							</button>
+						)}
 					</div>
 				</div>
 
