@@ -45,10 +45,13 @@ function formatTime(s) {
 	return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
-function checkSolved(board, solution) {
-	return board.every((row, ri) =>
-		row.every((cell, ci) => (cell === 1) === (solution[ri][ci] === 1))
-	);
+function checkSolved(board, rowClues, colClues) {
+	const size = board.length;
+	for (let ri = 0; ri < size; ri++)
+		if (!runsMatch(board[ri], rowClues[ri])) return false;
+	for (let ci = 0; ci < size; ci++)
+		if (!runsMatch(board.map((r) => r[ci]), colClues[ci])) return false;
+	return true;
 }
 
 function runsMatch(cells, clues) {
@@ -138,7 +141,7 @@ export default function SinglePlayer() {
 		setBoard((prev) => {
 			const nb = prev.map((r) => [...r]);
 			nb[ri][ci] = next;
-			if (checkSolved(nb, puzzle.solution)) { setSolved(true); setRunning(false); }
+			if (checkSolved(nb, puzzle.rowClues, puzzle.colClues)) { setSolved(true); setRunning(false); }
 			return nb;
 		});
 	};
@@ -161,7 +164,7 @@ export default function SinglePlayer() {
 			if (prev[ri][ci] === dragFill) return prev;
 			const nb = prev.map((r) => [...r]);
 			nb[ri][ci] = dragFill;
-			if (checkSolved(nb, puzzle.solution)) { setSolved(true); setRunning(false); }
+			if (checkSolved(nb, puzzle.rowClues, puzzle.colClues)) { setSolved(true); setRunning(false); }
 			return nb;
 		});
 	};
