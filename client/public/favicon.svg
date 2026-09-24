@@ -1,4 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <!-- Tile background -->
   <rect width="32" height="32" rx="7" fill="#090b10"/>
+
+  <!-- Row 0 -->
+  <rect x="9.25" y="3.75" width="5" height="5" rx="1" fill="#a3ff6e"/>
+  <rect x="15.75" y="3.75" width="5" height="5" rx="1" fill="#a3ff6e"/>
+
+  <!-- Row 1 -->
+  <rect x="2.75" y="10.25" width="5" height="5" rx="1" fill="#a3ff6e"/>
+  <rect x="22.25" y="10.25" width="5" height="5" rx="1" fill="#a3ff6e"/>
+
+  <!-- Row 2 -->
+  <rect x="2.75" y="16.75" width="5" height="5" rx="1" fill="#a3ff6e"/>
+  <rect x="22.25" y="16.75" width="5" height="5" rx="1" fill="#a3ff6e"/>
+
+  <!-- Row 3 -->
+  <rect x="9.25" y="23.25" width="5" height="5" rx="1" fill="#a3ff6e"/>
+  <rect x="15.75" y="23.25" width="5" height="5" rx="1" fill="#a3ff6e"/>
+
+  <!-- Empty cells (faint grid structure) -->
+  <rect x="2.75" y="3.75" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="22.25" y="3.75" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="9.25" y="10.25" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="15.75" y="10.25" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="9.25" y="16.75" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="15.75" y="16.75" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="2.75" y="23.25" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
+  <rect x="22.25" y="23.25" width="5" height="5" rx="1" fill="#a3ff6e" opacity="0.10"/>
 </svg>
