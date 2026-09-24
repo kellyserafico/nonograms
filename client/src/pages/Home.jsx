@@ -327,7 +327,7 @@ function Home() {
 					<ModeCard
 						badge="01 / solo"
 						title="Single Player"
-						description="challenge yourself."
+						description="solve puzzles at your own pace."
 						t={t}
 						onClick={() => handleMode("single")}
 					/>
@@ -355,8 +355,6 @@ function Home() {
 						onMouseEnter={(e) => (e.currentTarget.style.color = t.accent)}
 						onMouseLeave={(e) => (e.currentTarget.style.color = t.textDim)}
 					>how to play</span>
-					<span style={{ color: t.border }}>·</span>
-					<span>settings</span>
 				</footer>
 			</main>
 
